@@ -28,6 +28,12 @@
         .rain-selector, .monitor-selector { padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 13px; font-weight: 600; color: #0f172a; outline: none; cursor: pointer; width: 100%; box-sizing: border-box; }
         .rain-selector:hover, .monitor-selector:hover { border-color: #94a3b8; }
 
+        /* Navigation controls layout for selection wrapper */
+        .selector-nav-group { display: flex; align-items: center; gap: 6px; width: 100%; }
+        .nav-arrow-btn { display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; width: 32px; height: 33px; font-size: 14px; font-weight: bold; color: #475569; cursor: pointer; user-select: none; transition: all 0.1s ease; flex-shrink: 0; }
+        .nav-arrow-btn:hover { background: #f8fafc; border-color: #94a3b8; color: #0f172a; }
+        .nav-arrow-btn:active { background: #e2e8f0; }
+
         /* Styles for the Size of the Monitored Pipe Display Box */
         .pipe-size-box { padding: 8px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 14px; font-weight: bold; color: #0f172a; box-sizing: border-box; width: 100%; }
 
@@ -105,9 +111,13 @@
                     <div class="gauge-control-panel" id="controlBar" style="display: none;">
                         <div class="dropdown-wrapper">
                             <span>Select Monitor Station:</span>
-                            <select class="monitor-selector" id="monitorSelector">
-                                <option value="">-- No Monitor Station Selected --</option>
-                            </select>
+                            <div class="selector-nav-group">
+                                <button class="nav-arrow-btn" id="prevMonitorBtn" title="Previous Monitor">◀</button>
+                                <select class="monitor-selector" id="monitorSelector">
+                                    <option value="">-- No Monitor Station Selected --</option>
+                                </select>
+                                <button class="nav-arrow-btn" id="nextMonitorBtn" title="Next Monitor">▶</button>
+                            </div>
                         </div>
 
                         <div class="dropdown-wrapper" style="margin-top: 4px;">
@@ -206,6 +216,8 @@
         const monitorSelector = document.getElementById('monitorSelector');
         const rainSelector = document.getElementById('rainSelector');
         const pipeSizeDisplayBox = document.getElementById('pipeSizeDisplayBox');
+        const prevMonitorBtn = document.getElementById('prevMonitorBtn');
+        const nextMonitorBtn = document.getElementById('nextMonitorBtn');
         let fdvDatabase = {};
         let rainDatabase = {};
         let activeFdvKey = null;
@@ -244,7 +256,6 @@
                             rainDatabase[cleanKey] = parsedRain;
                         }
                     } else {
-                        // Pass file name to context checker
                         const parsedFdv = processFdvFile(contentText, file.name);
                         if (parsedFdv) {
                             fdvDatabase[file.name] = parsedFdv;
@@ -289,7 +300,6 @@
             let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
             let pipeSize = "";
             
-            // Check if the current filename context indicates a DM or FM station file
             const isDM = filename.toUpperCase().includes("_DM") || filename.toUpperCase().includes(".DM");
 
             for (let i = 0; i < lines.length; i++) {
@@ -300,9 +310,7 @@
                     if (isDM) {
                         pipeSize = "N/A";
                     } else {
-                        // Line directly beneath *CSTART contains the pipe sizing parameters for FM files
                         let paramLine1 = lines[i+1] ? lines[i+1].trim() : "";
-                        
                         if (paramLine1) {
                             let cleanParam = paramLine1.replace(/[*#]/g, '').trim();
                             let sizeMatch = cleanParam.match(/\d+/);
@@ -314,7 +322,6 @@
                         }
                     }
 
-                    // Look ahead further down to extract structural time variables safely 
                     let paramLine1ForTime = lines[i+1] ? lines[i+1].trim() : "";
                     let paramLineNext = lines[i+2] ? lines[i+2].trim() : "";
                     let match = paramLineNext.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
@@ -442,6 +449,25 @@
             calculateAndPopulateStats();
         });
 
+        // Left and Right Arrow Navigation Event Listeners
+        prevMonitorBtn.addEventListener('click', () => {
+            const keys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+            if (keys.length === 0) return;
+            let currentIndex = keys.indexOf(activeFdvKey);
+            let nextIndex = currentIndex - 1;
+            if (nextIndex < 0) nextIndex = keys.length - 1; // Cycle to end
+            switchToFilePage(keys[nextIndex]);
+        });
+
+        nextMonitorBtn.addEventListener('click', () => {
+            const keys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+            if (keys.length === 0) return;
+            let currentIndex = keys.indexOf(activeFdvKey);
+            let nextIndex = currentIndex + 1;
+            if (nextIndex >= keys.length) nextIndex = 0; // Cycle to beginning
+            switchToFilePage(keys[nextIndex]);
+        });
+
         function switchToFilePage(fdvKey) {
             if (!fdvKey || !fdvDatabase[fdvKey]) return;
             activeFdvKey = fdvKey;
@@ -449,11 +475,9 @@
             const fdvData = fdvDatabase[fdvKey];
             const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
             
-            // Keeps the title strictly as the monitor ID
             activeMonitorHeader.textContent = cleanDisplayLabel;
             activeMonitorHeader.style.display = 'block';
 
-            // Updates the dedicated pipe display box between the dropdown menus
             pipeSizeDisplayBox.textContent = fdvData.pipeSize;
 
             if (monitorSelector.value !== fdvKey) {
