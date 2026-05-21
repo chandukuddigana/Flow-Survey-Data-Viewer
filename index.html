@@ -38,20 +38,16 @@
         .rain-selector { padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 13px; font-weight: 600; color: #0f172a; outline: none; cursor: pointer; min-width: 220px; }
         .rain-selector:hover { border-color: #94a3b8; }
 
-        /* THREE-SECTION LAYOUT GRID SYSTEM */
+        /* LAYOUT GRID SYSTEM */
         .workspace-view { display: none; padding: 25px; }
         .workspace-layout { display: flex; gap: 25px; align-items: flex-start; }
         
-        /* SECTION A: Wide Primary Graphs */
         .graph-section-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        
-        /* PANEL B, C & D: Auxiliary Sidebar Matrix */
         .auxiliary-section-column { width: 340px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; }
 
         .graph-pane { background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); height: 185px; position: relative; }
         .graph-pane.rain-pane { border-top: 4px solid #1e3a8a; background: #eff6ff; height: 135px; display: none; }
         
-        /* Specific scaling styles for Side-Deck Panels */
         .graph-pane.legend-pane { border-top: 4px solid #f59e0b; height: auto; margin-bottom: 0; }
         .graph-pane.cumulative-pane { border-top: 4px solid #3b82f6; height: 210px; margin-bottom: 0; }
         .graph-pane.scatter-pane { border-top: 4px solid #ef4444; height: 210px; margin-bottom: 0; }
@@ -63,18 +59,16 @@
         .scatter-pane h3 { color: #b91c1c; }
         .status-msg { font-size: 12px; color: #64748b; font-weight: 500; }
 
-        /* BOTTOM STATISTICS COMPONENT */
-        .stats-footer-pane { background: #fff; border: 1px solid #e2e8f0; border-top: 4px solid #475569; border-radius: 6px; padding: 20px; margin-top: 25px; clear: both; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-        .stats-footer-pane h3 { color: #334155; font-size: 12px; margin-bottom: 12px; }
-        .stats-meta-summary { font-size: 13px; color: #64748b; margin-bottom: 15px; font-weight: 500; display: flex; gap: 20px; background: #f8fafc; padding: 10px 15px; border-radius: 4px; border: 1px solid #f1f5f9; }
-        .stats-meta-summary span b { color: #0f172a; }
+        /* MATCHED STATS TABLES BOTTOM LAYOUT */
+        .stats-container-block { margin-top: 30px; clear: both; width: 100%; display: flex; flex-direction: column; gap: 10px; background: #fff; border: 1px solid #cbd5e1; padding: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
+        .stats-layout-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; }
         
-        .stats-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
-        .stats-table th { background: #f1f5f9; color: #475569; font-weight: 600; padding: 10px 14px; border: 1px solid #e2e8f0; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
-        .stats-table td { padding: 10px 14px; border: 1px solid #e2e8f0; color: #334155; font-weight: 500; }
-        .stats-table tr:nth-child(even) { background: #f8fafc; }
-        .stats-table tr:hover { background: #f1f5f9; }
-        .stats-table td b { color: #0f172a; }
+        .stats-layout-table th, .stats-layout-table td { border: 1px solid #a1a1aa; padding: 6px 10px; color: #18181b; }
+        .stats-layout-table th { background-color: #f4f4f5; font-weight: 600; color: #27272a; font-size: 12px; }
+        
+        /* Layout Specific alignment modifiers */
+        .stats-layout-table .label-cell { background-color: #f4f4f5; font-weight: bold; width: 100px; text-align: center; }
+        .stats-layout-table .hdr-main { font-weight: bold; }
     </style>
 </head>
 <body>
@@ -142,7 +136,6 @@
                 </div>
 
                 <div class="auxiliary-section-column">
-                    
                     <div class="graph-pane legend-pane" id="legendPane" style="display: none;">
                         <h3>Rainfall Gauge Inventory & Totals</h3>
                         <div id="customLegendContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
@@ -160,45 +153,56 @@
                 </div>
             </div>
 
-            <div class="stats-footer-pane" id="statsFooterPane">
-                <h3>Workspace Engineering Summary Statistics</h3>
-                <div class="stats-meta-summary">
-                    <span>Data Timeline Period: <b id="metaTimeRange">N/A</b></span>
-                    <span>Total Timesteps Captured: <b id="metaTotalSteps">0</b></span>
-                </div>
-                <table class="stats-table">
+            <div class="stats-container-block" id="statsContainerBlock">
+                
+                <table class="stats-layout-table">
                     <thead>
                         <tr>
-                            <th>Parameter Stream</th>
-                            <th>Minimum Logged Value</th>
-                            <th>Maximum Logged Value</th>
-                            <th>Arithmetic Mean Value</th>
+                            <th class="hdr-main" style="width: 50%;">Time Range</th>
+                            <th class="hdr-main" style="width: 25%;">Total Rain Depth (mm)</th>
+                            <th class="hdr-main" style="width: 25%;">Total Flow Volume (m³)</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td><b>Precipitation Rainfall Intensity (mm)</b></td>
-                            <td id="statMinRain">-</td>
-                            <td id="statMaxRain">-</td>
-                            <td id="statAvgRain">-</td>
+                            <td id="tblTimeRange">0000-00-00 00:00:00 - 0000-00-00 00:00:00</td>
+                            <td id="tblTotalRain">0.000</td>
+                            <td id="tblTotalVolume">0.000</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table class="stats-layout-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;"></th>
+                            <th class="hdr-main" style="width: 22.5%;">Rain (mm)</th>
+                            <th class="hdr-main" style="width: 22.5%;">Depth (mm)</th>
+                            <th class="hdr-main" style="width: 22.5%;">Flow (L/s)</th>
+                            <th class="hdr-main" style="width: 22.5%;">Velocity (m/s)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="label-cell">Min</td>
+                            <td id="mMinRain">0</td>
+                            <td id="mMinDepth">0</td>
+                            <td id="mMinFlow">0</td>
+                            <td id="mMinVel">0</td>
                         </tr>
                         <tr>
-                            <td><b>Calculated Hydraulic Discharge Flow (L/s)</b></td>
-                            <td id="statMinFlow">-</td>
-                            <td id="statMaxFlow">-</td>
-                            <td id="statAvgFlow">-</td>
+                            <td class="label-cell">Max</td>
+                            <td id="mMaxRain">0</td>
+                            <td id="mMaxDepth">0</td>
+                            <td id="mMaxFlow">0</td>
+                            <td id="mMaxVel">0</td>
                         </tr>
-                        <tr>
-                            <td><b>Network Flow Depth (mm)</b></td>
-                            <td id="statMinDepth">-</td>
-                            <td id="statMaxDepth">-</td>
-                            <td id="statAvgDepth">-</td>
-                        </tr>
-                        <tr>
-                            <td><b>Mean Velocity Stream (m/s)</b></td>
-                            <td id="statMinVel">-</td>
-                            <td id="statMaxVel">-</td>
-                            <td id="statAvgVel">-</td>
+                        <tr style="background-color: #fafafa; font-style: italic;">
+                            <td class="label-cell" style="font-weight: 500; color: #52525b;">Mean</td>
+                            <td id="mAvgRain" style="color: #52525b;">0</td>
+                            <td id="mAvgDepth" style="color: #52525b;">0</td>
+                            <td id="mAvgFlow" style="color: #52525b;">0</td>
+                            <td id="mAvgVel" style="color: #52525b;">0</td>
                         </tr>
                     </tbody>
                 </table>
@@ -332,7 +336,7 @@
                 flow.push(rawValues[j]); depth.push(rawValues[j+1]); velocity.push(rawValues[j+2]);
                 step++;
             }
-            return { labels, flow, depth, velocity };
+            return { labels, flow, depth, velocity, intervalMinutes };
         }
 
         function processRainFile(text) {
@@ -361,7 +365,7 @@
                 labels.push(getStepLabel(baseDate, step, intervalMinutes));
                 rainValues.push(val);
             });
-            return { labels, values: rainValues };
+            return { labels, values: rainValues, intervalMinutes };
         }
 
         function parseYYMMDDHHMM(str) {
@@ -373,7 +377,7 @@
 
         function getStepLabel(baseDate, step, interval) {
             let current = new Date(baseDate.getTime() + (step * interval * 60 * 1000));
-            return current.toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'}) + ' ' + current.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+            return current.toISOString().split('T')[0] + ' ' + current.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
         }
 
         function rebuildInventoriesUI() {
@@ -433,7 +437,7 @@
             
             document.querySelectorAll('.station-item').forEach(item => {
                 if (item.textContent === fdvKey) item.classList.add('active');
-                else item.classList.remove('remove');
+                else item.classList.remove('active');
             });
 
             activeViewTitle.textContent = `Profile Viewer: ${fdvKey}`;
@@ -643,40 +647,50 @@
         function calculateAndPopulateStats() {
             let activeLabels = [];
             let hasData = false;
+            let totalRainSum = 0;
+            let calculatedVolumeM3 = 0;
 
-            // Initialize display resets
-            document.getElementById('metaTimeRange').textContent = "N/A";
-            document.getElementById('metaTotalSteps').textContent = "0";
+            // Reset Default Table Placeholders
+            document.getElementById('tblTimeRange').textContent = "0000-00-00 00:00:00 - 0000-00-00 00:00:00";
+            document.getElementById('tblTotalRain').textContent = "0.000";
+            document.getElementById('tblTotalVolume').textContent = "0.000";
             
             ['Rain', 'Flow', 'Depth', 'Vel'].forEach(p => {
-                document.getElementById(`statMin${p}`).textContent = "-";
-                document.getElementById(`statMax${p}`).textContent = "-";
-                document.getElementById(`statAvg${p}`).textContent = "-";
+                document.getElementById(`mMin${p}`).textContent = "0";
+                document.getElementById(`mMax${p}`).textContent = "0";
+                document.getElementById(`mAvg${p}`).textContent = "0";
             });
 
-            // Extract values from active hydraulic flow monitor
+            // 1. Core FDV calculations
             if (activeFdvKey && fdvDatabase[activeFdvKey]) {
                 const fdv = fdvDatabase[activeFdvKey];
                 activeLabels = fdv.labels;
                 hasData = true;
 
                 const flowStats = computeArrayMetrics(fdv.flow);
-                document.getElementById('statMinFlow').textContent = `${flowStats.min.toFixed(2)} L/s`;
-                document.getElementById('statMaxFlow').textContent = `${flowStats.max.toFixed(2)} L/s`;
-                document.getElementById('statAvgFlow').textContent = `${flowStats.avg.toFixed(2)} L/s`;
+                document.getElementById('mMinFlow').textContent = flowStats.min.toFixed(3);
+                document.getElementById('mMaxFlow').textContent = flowStats.max.toFixed(3);
+                document.getElementById('mAvgFlow').textContent = flowStats.avg.toFixed(3);
 
                 const depthStats = computeArrayMetrics(fdv.depth);
-                document.getElementById('statMinDepth').textContent = `${depthStats.min.toFixed(1)} mm`;
-                document.getElementById('statMaxDepth').textContent = `${depthStats.max.toFixed(1)} mm`;
-                document.getElementById('statAvgDepth').textContent = `${depthStats.avg.toFixed(1)} mm`;
+                document.getElementById('mMinDepth').textContent = depthStats.min.toFixed(2);
+                document.getElementById('mMaxDepth').textContent = depthStats.max.toFixed(2);
+                document.getElementById('mAvgDepth').textContent = depthStats.avg.toFixed(2);
 
                 const velStats = computeArrayMetrics(fdv.velocity);
-                document.getElementById('statMinVel').textContent = `${velStats.min.toFixed(2)} m/s`;
-                document.getElementById('statMaxVel').textContent = `${velStats.max.toFixed(2)} m/s`;
-                document.getElementById('statAvgVel').textContent = `${velStats.avg.toFixed(2)} m/s`;
+                document.getElementById('mMinVel').textContent = velStats.min.toFixed(2);
+                document.getElementById('mMaxVel').textContent = velStats.max.toFixed(2);
+                document.getElementById('mAvgVel').textContent = velStats.avg.toFixed(2);
+
+                // Calculate Cumulative Discharge Volume (m³)
+                // Total Flow Volume = Sum of (Flow in L/s * (interval minutes * 60 seconds)) / 1000 Liters per m³
+                let timeStepSeconds = (fdv.intervalMinutes || 2) * 60;
+                let integratedLiters = fdv.flow.reduce((acc, curr) => acc + (isNaN(curr) ? 0 : curr), 0) * timeStepSeconds;
+                calculatedVolumeM3 = integratedLiters / 1000;
+                document.getElementById('tblTotalVolume').textContent = calculatedVolumeM3.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3});
             }
 
-            // Extract values from active rain gauge selection
+            // 2. Core Rainfall calculations
             const selectedRainKey = rainSelector.value;
             if (selectedRainKey && rainDatabase[selectedRainKey]) {
                 const rain = rainDatabase[selectedRainKey];
@@ -684,15 +698,17 @@
                 hasData = true;
 
                 const rainStats = computeArrayMetrics(rain.values);
-                document.getElementById('statMinRain').textContent = `${rainStats.min.toFixed(2)} mm`;
-                document.getElementById('statMaxRain').textContent = `${rainStats.max.toFixed(2)} mm`;
-                document.getElementById('statAvgRain').textContent = `${rainStats.avg.toFixed(3)} mm`;
+                document.getElementById('mMinRain').textContent = rainStats.min.toFixed(1);
+                document.getElementById('mMaxRain').textContent = rainStats.max.toFixed(1);
+                document.getElementById('mAvgRain').textContent = rainStats.avg.toFixed(3);
+
+                totalRainSum = rain.values.reduce((acc, curr) => acc + (isNaN(curr) ? 0 : curr), 0);
+                document.getElementById('tblTotalRain').textContent = totalRainSum.toFixed(3);
             }
 
-            // If project profiles exist, render general timing context
+            // 3. Render Top Range Scope Strings
             if (hasData && activeLabels.length > 0) {
-                document.getElementById('metaTimeRange').textContent = `${activeLabels[0]}  ➔  ${activeLabels[activeLabels.length - 1]}`;
-                document.getElementById('metaTotalSteps').textContent = activeLabels.length;
+                document.getElementById('tblTimeRange').textContent = `${activeLabels[0]} - ${activeLabels[activeLabels.length - 1]}`;
             }
         }
 
