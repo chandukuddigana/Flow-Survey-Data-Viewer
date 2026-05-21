@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Independent Flow & Rainfall Workspace</title>
+    <title>Flow Survey Data Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #222; background-color: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
@@ -74,10 +74,10 @@
 
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>Independent Datasets</h2>
+            <h2>Flow Survey Data Viewer</h2>
         </div>
         <div class="file-list">
-            <div class="list-section-title">Hydraulic Profiles (.FDV)</div>
+            <div class="list-section-title">Select Monitor</div>
             <div class="list-container" id="fdvListContainer">
                 <div style="color: #64748b; font-size: 12px; padding: 5px; font-style: italic;">No monitors loaded</div>
             </div>
@@ -285,7 +285,6 @@
                         rebuildInventoriesUI();
                         populateRainDropdown();
                         
-                        // Successfully loaded profiles -> Hide upload bar completely to save space
                         if (Object.keys(fdvDatabase).length > 0 || Object.keys(rainDatabase).length > 0) {
                             dropZone.style.display = 'none';
                             workspaceView.style.display = 'block';
@@ -395,8 +394,10 @@
             } else {
                 fdvKeys.forEach(key => {
                     const div = document.createElement('div');
+                    // Cleans out the .fdv extension from the display label
+                    const cleanDisplayLabel = key.replace(/\.[fF][dD][vV]$/, '');
                     div.className = `station-item ${key === activeFdvKey ? 'active' : ''}`;
-                    div.textContent = key;
+                    div.textContent = cleanDisplayLabel;
                     div.onclick = (e) => { e.stopPropagation(); switchToFilePage(key); };
                     fdvListContainer.appendChild(div);
                 });
@@ -442,12 +443,14 @@
             if (!fdvKey || !fdvDatabase[fdvKey]) return;
             activeFdvKey = fdvKey;
             
+            const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
+            
             document.querySelectorAll('.station-item').forEach(item => {
-                if (item.textContent === fdvKey) item.classList.add('active');
+                if (item.textContent === cleanDisplayLabel) item.classList.add('active');
                 else item.classList.remove('active');
             });
 
-            activeViewTitle.textContent = `Profile Viewer: ${fdvKey}`;
+            activeViewTitle.textContent = `Profile Viewer: ${cleanDisplayLabel}`;
             globalStatus.textContent = `Hydraulics Channels Stream Synchronized.`;
             hydraulicChartsWrapper.style.display = 'block';
 
@@ -622,6 +625,7 @@
 
             scatterPane.style.display = 'block';
             const fdvData = fdvDatabase[activeFdvKey];
+            const cleanDisplayLabel = activeFdvKey.replace(/\.[fF][dD][vV]$/, '');
             
             const coordinatePairs = [];
             for (let i = 0; i < fdvData.depth.length; i++) {
@@ -638,7 +642,7 @@
                 type: 'scatter',
                 data: {
                     datasets: [{
-                        label: activeFdvKey,
+                        label: cleanDisplayLabel,
                         data: coordinatePairs,
                         backgroundColor: 'rgba(239, 68, 68, 0.5)',
                         borderColor: '#ef4444',
