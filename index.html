@@ -46,7 +46,9 @@
         .auxiliary-section-column { width: 340px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; }
 
         .graph-pane { background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); height: 195px; position: relative; }
-        .graph-pane.rain-pane { border-top: 4px solid #1e3a8a; height: 145px; display: none; }
+        
+        /* Removed border-top override to keep it uniform with other panes */
+        .graph-pane.rain-pane { height: 145px; display: none; }
         
         .graph-pane.legend-pane { border-top: 4px solid #f59e0b; height: auto; margin-bottom: 0; }
         .graph-pane.cumulative-pane { border-top: 4px solid #3b82f6; height: 220px; margin-bottom: 0; }
@@ -476,8 +478,7 @@
             if (selectedRainKey && rainDatabase[selectedRainKey]) {
                 rainPane.style.display = 'block';
                 const rainData = rainDatabase[selectedRainKey];
-                // Background opacity profile modified from blue overlay into plain standard alpha configuration
-                renderPane('rainChart', rainData.labels, rainData.values, 'Intensity (mm/hr)', '#1e3a8a', 'rgba(0, 0, 0, 0)', 'rain', true);
+                renderPane('rainChart', rainData.labels, rainData.values, 'Intensity (mm/hr)', '#1e3a8a', '#1e3a8a', 'rain', true);
             } else {
                 rainPane.style.display = 'none';
                 if (charts.rain) { charts.rain.destroy(); charts.rain = null; }
