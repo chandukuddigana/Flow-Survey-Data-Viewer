@@ -59,15 +59,14 @@
         .scatter-pane h3 { color: #b91c1c; }
         .status-msg { font-size: 12px; color: #64748b; font-weight: 500; }
 
-        /* MATCHED STATS TABLES BOTTOM LAYOUT */
-        .stats-container-block { margin-top: 30px; clear: both; width: 100%; display: flex; flex-direction: column; gap: 10px; background: #fff; border: 1px solid #cbd5e1; padding: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
+        /* CUSTOM METRIC TABLES BOTTOM LAYOUT WITH NAVY BLUE BORDERS */
+        .stats-container-block { margin-top: 30px; clear: both; width: 100%; display: flex; flex-direction: column; gap: 10px; background: #fff; border: 1.5px solid #1e3a8a; padding: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
         .stats-layout-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; }
         
-        .stats-layout-table th, .stats-layout-table td { border: 1px solid #a1a1aa; padding: 6px 10px; color: #18181b; }
-        .stats-layout-table th { background-color: #f4f4f5; font-weight: 600; color: #27272a; font-size: 12px; }
+        .stats-layout-table th, .stats-layout-table td { border: 1px solid #1e3a8a; padding: 6px 10px; color: #1e293b; }
+        .stats-layout-table th { background-color: #f0f4f8; font-weight: 600; color: #1e3a8a; font-size: 12px; }
         
-        /* Layout Specific alignment modifiers */
-        .stats-layout-table .label-cell { background-color: #f4f4f5; font-weight: bold; width: 100px; text-align: center; }
+        .stats-layout-table .label-cell { background-color: #f0f4f8; font-weight: bold; width: 100px; text-align: center; color: #1e3a8a; }
         .stats-layout-table .hdr-main { font-weight: bold; }
     </style>
 </head>
@@ -190,19 +189,19 @@
                             <td id="mMinFlow">0</td>
                             <td id="mMinVel">0</td>
                         </tr>
+                        <tr style="background-color: #fcfcfc;">
+                            <td class="label-cell" style="font-weight: bold;">Avg</td>
+                            <td id="mAvgRain" style="font-weight: 500;">0</td>
+                            <td id="mAvgDepth" style="font-weight: 500;">0</td>
+                            <td id="mAvgFlow" style="font-weight: 500;">0</td>
+                            <td id="mAvgVel" style="font-weight: 500;">0</td>
+                        </tr>
                         <tr>
                             <td class="label-cell">Max</td>
                             <td id="mMaxRain">0</td>
                             <td id="mMaxDepth">0</td>
                             <td id="mMaxFlow">0</td>
                             <td id="mMaxVel">0</td>
-                        </tr>
-                        <tr style="background-color: #fafafa; font-style: italic;">
-                            <td class="label-cell" style="font-weight: 500; color: #52525b;">Mean</td>
-                            <td id="mAvgRain" style="color: #52525b;">0</td>
-                            <td id="mAvgDepth" style="color: #52525b;">0</td>
-                            <td id="mAvgFlow" style="color: #52525b;">0</td>
-                            <td id="mAvgVel" style="color: #52525b;">0</td>
                         </tr>
                     </tbody>
                 </table>
@@ -683,7 +682,6 @@
                 document.getElementById('mAvgVel').textContent = velStats.avg.toFixed(2);
 
                 // Calculate Cumulative Discharge Volume (m³)
-                // Total Flow Volume = Sum of (Flow in L/s * (interval minutes * 60 seconds)) / 1000 Liters per m³
                 let timeStepSeconds = (fdv.intervalMinutes || 2) * 60;
                 let integratedLiters = fdv.flow.reduce((acc, curr) => acc + (isNaN(curr) ? 0 : curr), 0) * timeStepSeconds;
                 calculatedVolumeM3 = integratedLiters / 1000;
