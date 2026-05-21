@@ -62,6 +62,19 @@
         .cumulative-pane h3 { color: #2563eb; }
         .scatter-pane h3 { color: #b91c1c; }
         .status-msg { font-size: 12px; color: #64748b; font-weight: 500; }
+
+        /* BOTTOM STATISTICS COMPONENT */
+        .stats-footer-pane { background: #fff; border: 1px solid #e2e8f0; border-top: 4px solid #475569; border-radius: 6px; padding: 20px; margin-top: 25px; clear: both; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .stats-footer-pane h3 { color: #334155; font-size: 12px; margin-bottom: 12px; }
+        .stats-meta-summary { font-size: 13px; color: #64748b; margin-bottom: 15px; font-weight: 500; display: flex; gap: 20px; background: #f8fafc; padding: 10px 15px; border-radius: 4px; border: 1px solid #f1f5f9; }
+        .stats-meta-summary span b { color: #0f172a; }
+        
+        .stats-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        .stats-table th { background: #f1f5f9; color: #475569; font-weight: 600; padding: 10px 14px; border: 1px solid #e2e8f0; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+        .stats-table td { padding: 10px 14px; border: 1px solid #e2e8f0; color: #334155; font-weight: 500; }
+        .stats-table tr:nth-child(even) { background: #f8fafc; }
+        .stats-table tr:hover { background: #f1f5f9; }
+        .stats-table td b { color: #0f172a; }
     </style>
 </head>
 <body>
@@ -144,11 +157,53 @@
                         <h3>Velocity vs Depth Correlation</h3>
                         <canvas id="scatterChart"></canvas>
                     </div>
-                    
-                    <div id="futureAuxiliaryContainer"></div>
                 </div>
-
             </div>
+
+            <div class="stats-footer-pane" id="statsFooterPane">
+                <h3>Workspace Engineering Summary Statistics</h3>
+                <div class="stats-meta-summary">
+                    <span>Data Timeline Period: <b id="metaTimeRange">N/A</b></span>
+                    <span>Total Timesteps Captured: <b id="metaTotalSteps">0</b></span>
+                </div>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter Stream</th>
+                            <th>Minimum Logged Value</th>
+                            <th>Maximum Logged Value</th>
+                            <th>Arithmetic Mean Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>Precipitation Rainfall Intensity (mm)</b></td>
+                            <td id="statMinRain">-</td>
+                            <td id="statMaxRain">-</td>
+                            <td id="statAvgRain">-</td>
+                        </tr>
+                        <tr>
+                            <td><b>Calculated Hydraulic Discharge Flow (L/s)</b></td>
+                            <td id="statMinFlow">-</td>
+                            <td id="statMaxFlow">-</td>
+                            <td id="statAvgFlow">-</td>
+                        </tr>
+                        <tr>
+                            <td><b>Network Flow Depth (mm)</b></td>
+                            <td id="statMinDepth">-</td>
+                            <td id="statMaxDepth">-</td>
+                            <td id="statAvgDepth">-</td>
+                        </tr>
+                        <tr>
+                            <td><b>Mean Velocity Stream (m/s)</b></td>
+                            <td id="statMinVel">-</td>
+                            <td id="statMaxVel">-</td>
+                            <td id="statAvgVel">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 
@@ -238,6 +293,7 @@
                             scatterPane.style.display = 'none';
                             updateRainfallChartTrack();
                             renderCumulativeComparisonChart();
+                            calculateAndPopulateStats();
                         }
 
                         statusDiv.textContent = `Successfully updated library: ${Object.keys(fdvDatabase).length} FDVs and ${Object.keys(rainDatabase).length} Rain files ready.`;
@@ -368,6 +424,7 @@
 
         rainSelector.addEventListener('change', () => {
             updateRainfallChartTrack();
+            calculateAndPopulateStats();
         });
 
         function switchToFilePage(fdvKey) {
@@ -376,7 +433,7 @@
             
             document.querySelectorAll('.station-item').forEach(item => {
                 if (item.textContent === fdvKey) item.classList.add('active');
-                else item.classList.remove('active');
+                else item.classList.remove('remove');
             });
 
             activeViewTitle.textContent = `Profile Viewer: ${fdvKey}`;
@@ -392,6 +449,7 @@
             updateRainfallChartTrack();
             renderCumulativeComparisonChart();
             renderScatterCorrelationChart();
+            calculateAndPopulateStats();
         }
 
         function updateRainfallChartTrack() {
@@ -530,7 +588,6 @@
             scatterPane.style.display = 'block';
             const fdvData = fdvDatabase[activeFdvKey];
             
-            // Map arrays: x is now Velocity (M/S), y is now Depth (MM)
             const coordinatePairs = [];
             for (let i = 0; i < fdvData.depth.length; i++) {
                 coordinatePairs.push({
@@ -581,6 +638,81 @@
                     }
                 }
             });
+        }
+
+        function calculateAndPopulateStats() {
+            let activeLabels = [];
+            let hasData = false;
+
+            // Initialize display resets
+            document.getElementById('metaTimeRange').textContent = "N/A";
+            document.getElementById('metaTotalSteps').textContent = "0";
+            
+            ['Rain', 'Flow', 'Depth', 'Vel'].forEach(p => {
+                document.getElementById(`statMin${p}`).textContent = "-";
+                document.getElementById(`statMax${p}`).textContent = "-";
+                document.getElementById(`statAvg${p}`).textContent = "-";
+            });
+
+            // Extract values from active hydraulic flow monitor
+            if (activeFdvKey && fdvDatabase[activeFdvKey]) {
+                const fdv = fdvDatabase[activeFdvKey];
+                activeLabels = fdv.labels;
+                hasData = true;
+
+                const flowStats = computeArrayMetrics(fdv.flow);
+                document.getElementById('statMinFlow').textContent = `${flowStats.min.toFixed(2)} L/s`;
+                document.getElementById('statMaxFlow').textContent = `${flowStats.max.toFixed(2)} L/s`;
+                document.getElementById('statAvgFlow').textContent = `${flowStats.avg.toFixed(2)} L/s`;
+
+                const depthStats = computeArrayMetrics(fdv.depth);
+                document.getElementById('statMinDepth').textContent = `${depthStats.min.toFixed(1)} mm`;
+                document.getElementById('statMaxDepth').textContent = `${depthStats.max.toFixed(1)} mm`;
+                document.getElementById('statAvgDepth').textContent = `${depthStats.avg.toFixed(1)} mm`;
+
+                const velStats = computeArrayMetrics(fdv.velocity);
+                document.getElementById('statMinVel').textContent = `${velStats.min.toFixed(2)} m/s`;
+                document.getElementById('statMaxVel').textContent = `${velStats.max.toFixed(2)} m/s`;
+                document.getElementById('statAvgVel').textContent = `${velStats.avg.toFixed(2)} m/s`;
+            }
+
+            // Extract values from active rain gauge selection
+            const selectedRainKey = rainSelector.value;
+            if (selectedRainKey && rainDatabase[selectedRainKey]) {
+                const rain = rainDatabase[selectedRainKey];
+                if (activeLabels.length === 0) activeLabels = rain.labels;
+                hasData = true;
+
+                const rainStats = computeArrayMetrics(rain.values);
+                document.getElementById('statMinRain').textContent = `${rainStats.min.toFixed(2)} mm`;
+                document.getElementById('statMaxRain').textContent = `${rainStats.max.toFixed(2)} mm`;
+                document.getElementById('statAvgRain').textContent = `${rainStats.avg.toFixed(3)} mm`;
+            }
+
+            // If project profiles exist, render general timing context
+            if (hasData && activeLabels.length > 0) {
+                document.getElementById('metaTimeRange').textContent = `${activeLabels[0]}  ➔  ${activeLabels[activeLabels.length - 1]}`;
+                document.getElementById('metaTotalSteps').textContent = activeLabels.length;
+            }
+        }
+
+        function computeArrayMetrics(arr) {
+            if (!arr || arr.length === 0) return { min: 0, max: 0, avg: 0 };
+            let min = Infinity, max = -Infinity, sum = 0, count = 0;
+            for (let i = 0; i < arr.length; i++) {
+                const val = arr[i];
+                if (val !== undefined && !isNaN(val)) {
+                    if (val < min) min = val;
+                    if (val > max) max = val;
+                    sum += val;
+                    count++;
+                }
+            }
+            return {
+                min: min === Infinity ? 0 : min,
+                max: max === -Infinity ? 0 : max,
+                avg: count === 0 ? 0 : (sum / count)
+            };
         }
 
         function renderPane(canvasId, labels, data, labelTitle, primaryColor, fillBG, key, invertY = false) {
