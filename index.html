@@ -12,8 +12,8 @@
         .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100%; min-width: 0; padding: 0; }
         .top-banner { background: #fff; padding: 10px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; min-height: 20px; }
         
-        /* Large Bold Red Active Monitor Header */
-        .active-monitor-header { font-size: 24px; font-weight: 800; color: #ef4444; margin: 0 0 15px 5px; text-transform: uppercase; letter-spacing: 0.5px; display: none; }
+        /* Large Bold Red Center-Aligned Target Identifier Title */
+        .active-monitor-header { font-size: 26px; font-weight: 800; color: #ef4444; margin: 0 0 20px 0; text-transform: uppercase; letter-spacing: 0.5px; display: none; text-align: center; width: 100%; }
 
         /* Clickable Drop Zone area */
         .upload-zone { border: 2px dashed #38bdf8; padding: 35px 25px; text-align: center; background: #fff; border-radius: 8px; margin: 25px; cursor: pointer; transition: background 0.15s ease-in-out; flex-shrink: 0; }
@@ -71,7 +71,7 @@
 
         <div class="workspace-view" id="workspaceView">
             
-            <div class="active-monitor-header" id="activeMonitorHeader">Selected Monitor: None</div>
+            <div class="active-monitor-header" id="activeMonitorHeader"></div>
 
             <div class="workspace-layout">
                 
@@ -280,9 +280,20 @@
         function processFdvFile(text) {
             const lines = text.split(/\r?\n/);
             let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
+            let pipeSize = "Unknown";
+            
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
+                
+                // Track down metadata configurations inside headers
+                if (line.toUpperCase().includes('SIZE') || line.toUpperCase().includes('PIPE') || line.toUpperCase().includes('DIAMETER')) {
+                    const numericMatches = line.match(/\d+/);
+                    if (numericMatches) {
+                        pipeSize = numericMatches[0] + "mm";
+                    }
+                }
+                
                 if (line.startsWith('*CSTART')) {
                     let paramLine2 = "";
                     for(let k=1; k<5; k++) {
@@ -306,7 +317,7 @@
                 flow.push(rawValues[j]); depth.push(rawValues[j+1]); velocity.push(rawValues[j+2]);
                 step++;
             }
-            return { labels, flow, depth, velocity, intervalMinutes };
+            return { labels, flow, depth, velocity, intervalMinutes, pipeSize };
         }
 
         function processRainFile(text, fileName) {
@@ -417,10 +428,11 @@
             if (!fdvKey || !fdvDatabase[fdvKey]) return;
             activeFdvKey = fdvKey;
             
+            const fdvData = fdvDatabase[fdvKey];
             const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
             
-            // Render Active Header Target Profile Text
-            activeMonitorHeader.textContent = `Selected Monitor: ${cleanDisplayLabel}`;
+            // Build and display simplified center title with pipe size metric context
+            activeMonitorHeader.textContent = `${cleanDisplayLabel} - ${fdvData.pipeSize}`;
             activeMonitorHeader.style.display = 'block';
 
             if (monitorSelector.value !== fdvKey) {
@@ -428,8 +440,6 @@
             }
 
             hydraulicChartsWrapper.style.display = 'block';
-
-            const fdvData = fdvDatabase[fdvKey];
             
             renderPane('depthChart', fdvData.labels, fdvData.depth, 'Depth (mm)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'depth');
             renderPane('flowChart', fdvData.labels, fdvData.flow, 'Flow (lit/sec)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'flow');
