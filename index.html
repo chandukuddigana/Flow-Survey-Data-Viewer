@@ -8,33 +8,40 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #222; background-color: #f8fafc; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
+        /* Main Workspace Content Arena */
         .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100%; min-width: 0; padding: 0; }
         .top-banner { background: #fff; padding: 10px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; min-height: 20px; }
         
+        /* Large Bold Red Center-Aligned Target Identifier Title Wrapper and Buttons */
         .active-monitor-header-wrapper { display: none; justify-content: center; align-items: center; gap: 24px; margin: 0 0 20px 0; width: 100%; user-select: none; }
         .active-monitor-header { font-size: 26px; font-weight: 800; color: #ef4444; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; }
         .title-nav-arrow-btn { background: none; border: none; font-size: 24px; color: #ef4444; cursor: pointer; transition: all 0.1s ease; padding: 5px 14px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
         .title-nav-arrow-btn:hover { color: #b91c1c; background-color: #fee2e2; transform: scale(1.15); }
         .title-nav-arrow-btn:active { transform: scale(0.92); }
 
+        /* Clickable Drop Zone area */
         .upload-zone { border: 2px dashed #38bdf8; padding: 35px 25px; text-align: center; background: #fff; border-radius: 8px; margin: 25px; cursor: pointer; transition: background 0.15s ease-in-out; flex-shrink: 0; }
         .upload-zone:hover { background: #f0f9ff; border-color: #0284c7; }
         #fileInput { display: none; }
         .btn { background: #0284c7; color: white; padding: 10px 20px; border-radius: 4px; cursor: pointer; display: inline-block; font-weight: bold; font-size: 13px; text-decoration: none; pointer-events: none; }
         
+        /* Compact Multi-Line Gauge Control Panel Box */
         .gauge-control-panel { display: flex; flex-direction: column; gap: 6px; background: #f1f5f9; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; }
         .gauge-control-panel span { font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
         .dropdown-wrapper { display: flex; flex-direction: column; gap: 4px; }
         .rain-selector, .monitor-selector { padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 13px; font-weight: 600; color: #0f172a; outline: none; cursor: pointer; width: 100%; box-sizing: border-box; }
         .rain-selector:hover, .monitor-selector:hover { border-color: #94a3b8; }
 
+        /* Navigation controls layout for selection wrapper */
         .selector-nav-group { display: flex; align-items: center; gap: 6px; width: 100%; }
         .nav-arrow-btn { display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; width: 32px; height: 33px; font-size: 14px; font-weight: bold; color: #475569; cursor: pointer; user-select: none; transition: all 0.1s ease; flex-shrink: 0; }
         .nav-arrow-btn:hover { background: #f8fafc; border-color: #94a3b8; color: #0f172a; }
         .nav-arrow-btn:active { background: #e2e8f0; }
 
+        /* Styles for the Size of the Monitored Pipe Display Box */
         .pipe-size-box { padding: 8px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 14px; font-weight: bold; color: #0f172a; box-sizing: border-box; width: 100%; }
 
+        /* LAYOUT GRID SYSTEM WITH MAXIMUM WIDTH */
         .workspace-view { display: none; padding: 25px; box-sizing: border-box; width: 100%; }
         .workspace-layout { display: flex; gap: 25px; align-items: flex-start; }
         
@@ -52,6 +59,7 @@
         .cumulative-pane h3 { color: #2563eb; }
         .scatter-pane h3 { color: #b91c1c; }
 
+        /* CUSTOM METRIC TABLES BOTTOM LAYOUT WITH NAVY BLUE BORDERS */
         .stats-container-block { margin-top: 30px; margin-right: 2px; clear: both; display: flex; flex-direction: column; gap: 10px; background: #fff; border: 1.5px solid #1e3a8a; padding: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); box-sizing: border-box; }
         .stats-layout-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; }
         
@@ -70,7 +78,7 @@
         <div class="upload-zone" id="dropZone">
             <div class="btn">Select Files</div>
             <input type="file" id="fileInput" multiple>
-            <p style="margin: 12px 0 0 0; color: #475569; font-size: 14px; font-weight: 500;">Click to upload your <b>.FDV</b> and <b>.R</b> files</p>
+            <p style="margin: 12px 0 0 0; color: #475569; font-size: 14px; font-weight: 500;">Click anywhere inside this area, or drag and drop your <b>.FDV</b> and <b>.R</b> files here</p>
             <div id="status" style="margin-top: 10px; font-size: 13px; color: #0284c7; font-weight: bold;">Ready...</div>
         </div>
 
@@ -83,11 +91,13 @@
             </div>
 
             <div class="workspace-layout">
+                
                 <div class="graph-section-column">
                     <div class="graph-pane rain-pane" id="rainPane">
                         <h3>Rainfall Intensity (mm/hr)</h3>
                         <canvas id="rainChart"></canvas>
                     </div>
+                    
                     <div id="hydraulicChartsWrapper" style="display: none;">
                         <div class="graph-pane">
                             <h3>Depth (mm)</h3>
@@ -105,6 +115,7 @@
                 </div>
 
                 <div class="auxiliary-section-column">
+                    
                     <div class="gauge-control-panel" id="controlBar" style="display: none;">
                         <div class="dropdown-wrapper">
                             <span>Select Monitor Station:</span>
@@ -116,10 +127,12 @@
                                 <button class="nav-arrow-btn" id="nextMonitorBtn" title="Next Monitor">▶</button>
                             </div>
                         </div>
+
                         <div class="dropdown-wrapper" style="margin-top: 4px;">
                             <span>Size of the Monitored Pipe:</span>
                             <div class="pipe-size-box" id="pipeSizeDisplayBox">—</div>
                         </div>
+
                         <div class="dropdown-wrapper" style="margin-top: 4px;">
                             <span>Select Rain gauge:</span>
                             <select class="rain-selector" id="rainSelector">
@@ -141,6 +154,7 @@
             </div>
 
             <div class="stats-container-block" id="statsContainerBlock">
+                
                 <table class="stats-layout-table">
                     <thead>
                         <tr>
@@ -157,143 +171,304 @@
                         </tr>
                     </tbody>
                 </table>
+
+                <table class="stats-layout-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;"></th>
+                            <th class="hdr-main" style="width: 22.5%;">Rain Intensity (mm/hr)</th>
+                            <th class="hdr-main" style="width: 22.5%;">Depth (mm)</th>
+                            <th class="hdr-main" style="width: 22.5%;">Flow (L/s)</th>
+                            <th class="hdr-main" style="width: 22.5%;">Velocity (m/s)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="label-cell">Min</td>
+                            <td id="mMinRain">0</td>
+                            <td id="mMinDepth">0</td>
+                            <td id="mMinFlow">0</td>
+                            <td id="mMinVel">0</td>
+                        </tr>
+                        <tr style="background-color: #fcfcfc;">
+                            <td class="label-cell" style="font-weight: bold;">Avg</td>
+                            <td id="mAvgRain" style="font-weight: 500;">0</td>
+                            <td id="mAvgDepth" style="font-weight: 500;">0</td>
+                            <td id="mAvgFlow" style="font-weight: 500;">0</td>
+                            <td id="mAvgVel" style="font-weight: 500;">0</td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell">Max</td>
+                            <td id="mMaxRain">0</td>
+                            <td id="mMaxDepth">0</td>
+                            <td id="mMaxFlow">0</td>
+                            <td id="mMaxVel">0</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
+
         </div>
     </div>
 
     <script>
-        const fileInput = document.getElementById('fileInput'), dropZone = document.getElementById('dropZone'), statusDiv = document.getElementById('status'), workspaceView = document.getElementById('workspaceView'), activeMonitorHeaderWrapper = document.getElementById('activeMonitorHeaderWrapper'), activeMonitorHeader = document.getElementById('activeMonitorHeader'), hydraulicChartsWrapper = document.getElementById('hydraulicChartsWrapper'), cumulativePane = document.getElementById('cumulativePane'), scatterPane = document.getElementById('scatterPane'), controlBar = document.getElementById('controlBar'), monitorSelector = document.getElementById('monitorSelector'), rainSelector = document.getElementById('rainSelector'), pipeSizeDisplayBox = document.getElementById('pipeSizeDisplayBox'), prevMonitorBtn = document.getElementById('prevMonitorBtn'), nextMonitorBtn = document.getElementById('nextMonitorBtn'), titlePrevMonitorBtn = document.getElementById('titlePrevMonitorBtn'), titleNextMonitorBtn = document.getElementById('titleNextMonitorBtn');
-        let fdvDatabase = {}, rainDatabase = {}, activeFdvKey = null, charts = { rain: null, cumulative: null, flow: null, depth: null, velocity: null, scatter: null };
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const statusDiv = document.getElementById('status');
+        const workspaceView = document.getElementById('workspaceView');
+        const activeMonitorHeaderWrapper = document.getElementById('activeMonitorHeaderWrapper');
+        const activeMonitorHeader = document.getElementById('activeMonitorHeader');
+        const hydraulicChartsWrapper = document.getElementById('hydraulicChartsWrapper');
+        const cumulativePane = document.getElementById('cumulativePane');
+        const scatterPane = document.getElementById('scatterPane');
+        const controlBar = document.getElementById('controlBar');
+        const monitorSelector = document.getElementById('monitorSelector');
+        const rainSelector = document.getElementById('rainSelector');
+        const pipeSizeDisplayBox = document.getElementById('pipeSizeDisplayBox');
+        const prevMonitorBtn = document.getElementById('prevMonitorBtn');
+        const nextMonitorBtn = document.getElementById('nextMonitorBtn');
+        const titlePrevMonitorBtn = document.getElementById('titlePrevMonitorBtn');
+        const titleNextMonitorBtn = document.getElementById('titleNextMonitorBtn');
+        let fdvDatabase = {};
+        let rainDatabase = {};
+        let activeFdvKey = null;
+        let charts = { rain: null, cumulative: null, flow: null, depth: null, velocity: null, scatter: null };
         const lineColorsPalette = ['#1e3a8a', '#2563eb', '#06b6d4', '#f59e0b', '#ec4899', '#8b5cf6', '#ef4444'];
 
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => { window.addEventListener(e, (ev) => { ev.preventDefault(); ev.stopPropagation(); }, false); });
-        dropZone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-        dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+        const preventDefaults = (e) => { e.preventDefault(); e.stopPropagation(); };
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            window.addEventListener(eventName, preventDefaults, false);
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        dropZone.addEventListener('click', () => { fileInput.click(); });
 
-        // Optimized sequential file reader
-        async function handleFiles(files) {
+        fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); });
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            if (dt.files && dt.files.length > 0) handleFiles(dt.files);
+        });
+
+        function handleFiles(files) {
             if (files.length === 0) return;
-            statusDiv.textContent = `Processing ${files.length} files...`;
+            statusDiv.textContent = `Sorting files into independent data pools...`;
             
+            let filesProcessed = 0;
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                statusDiv.textContent = `Reading ${i + 1}/${files.length}: ${file.name}`;
-                try {
-                    const contentText = await readFileAsync(file);
-                    const fileNameUpper = file.name.toUpperCase();
+                const fileNameUpper = file.name.toUpperCase();
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const contentText = e.target.result;
                     if (contentText.includes('FIELD: 1,RAIN') || fileNameUpper.endsWith('.R')) {
                         const parsedRain = processRainFile(contentText, file.name);
-                        if (parsedRain) rainDatabase[file.name.replace(/\.[rR]$/, '')] = parsedRain;
+                        if (parsedRain) {
+                            let cleanKey = file.name.replace(/\.[rR]$/, '');
+                            rainDatabase[cleanKey] = parsedRain;
+                        }
                     } else {
                         const parsedFdv = processFdvFile(contentText, file.name);
-                        if (parsedFdv) fdvDatabase[file.name] = parsedFdv;
+                        if (parsedFdv) {
+                            fdvDatabase[file.name] = parsedFdv;
+                        }
                     }
-                } catch (err) { console.error("Error reading file:", err); }
-            }
+                    
+                    filesProcessed++;
+                    if (filesProcessed === files.length) {
+                        const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+                        if (sortedFdvKeys.length > 0 && (!activeFdvKey || !fdvDatabase[activeFdvKey])) {
+                            activeFdvKey = sortedFdvKeys[0];
+                        }
 
-            statusDiv.textContent = "Data Loaded Successfully.";
-            const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-            if (sortedFdvKeys.length > 0 && !activeFdvKey) activeFdvKey = sortedFdvKeys[0];
+                        populateMonitorDropdown();
+                        populateRainDropdown();
+                        
+                        if (Object.keys(fdvDatabase).length > 0 || Object.keys(rainDatabase).length > 0) {
+                            dropZone.style.display = 'none';
+                            workspaceView.style.display = 'block';
+                            controlBar.style.display = 'flex';
+                        }
 
-            populateMonitorDropdown();
-            populateRainDropdown();
-            
-            if (Object.keys(fdvDatabase).length > 0 || Object.keys(rainDatabase).length > 0) {
-                dropZone.style.display = 'none';
-                workspaceView.style.display = 'block';
-                controlBar.style.display = 'flex';
-                if (activeFdvKey) switchToFilePage(activeFdvKey);
-            }
-        }
-
-        function readFileAsync(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
+                        if (activeFdvKey) {
+                            switchToFilePage(activeFdvKey);
+                        } else {
+                            activeMonitorHeaderWrapper.style.display = 'none';
+                            hydraulicChartsWrapper.style.display = 'none';
+                            scatterPane.style.display = 'none';
+                            pipeSizeDisplayBox.textContent = "—";
+                            updateRainfallChartTrack();
+                            renderCumulativeComparisonChart();
+                            calculateAndPopulateStats();
+                        }
+                    }
+                };
                 reader.readAsText(file);
-            });
+            }
         }
 
         function processFdvFile(text, filename) {
             const lines = text.split(/\r?\n/);
-            let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [], pipeSize = "";
-            const isDM = filename.toUpperCase().includes("_DM");
+            let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
+            let pipeSize = "";
+            
+            const isDM = filename.toUpperCase().includes("_DM") || filename.toUpperCase().includes(".DM");
+
             for (let i = 0; i < lines.length; i++) {
-                if (lines[i].startsWith('*CSTART')) {
-                    if (!isDM) {
-                        let p = lines[i+1]?.replace(/[*#]/g, '').trim() || "";
-                        pipeSize = p.match(/\d+/) ? p.match(/\d+/)[0] + "mm" : p;
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                if (line.startsWith('*CSTART')) {
+                    if (isDM) {
+                        pipeSize = "N/A";
+                    } else {
+                        let paramLine1 = lines[i+1] ? lines[i+1].trim() : "";
+                        if (paramLine1) {
+                            let cleanParam = paramLine1.replace(/[*#]/g, '').trim();
+                            let sizeMatch = cleanParam.match(/\d+/);
+                            if (sizeMatch) {
+                                pipeSize = sizeMatch[0] + "mm";
+                            } else {
+                                pipeSize = cleanParam;
+                            }
+                        }
                     }
-                    let m = lines[i+2]?.match(/^(\d{10})\s+\d{10}\s+(\d+)/) || lines[i+1]?.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
-                    if (m) { startTimeStr = m[1]; intervalMinutes = parseInt(m[2]); }
+
+                    let paramLine1ForTime = lines[i+1] ? lines[i+1].trim() : "";
+                    let paramLineNext = lines[i+2] ? lines[i+2].trim() : "";
+                    let match = paramLineNext.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    if (!match && paramLine1ForTime) {
+                        match = paramLine1ForTime.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    }
+                    if (match) { 
+                        startTimeStr = match[1];
+                        intervalMinutes = parseInt(match[2]); 
+                    }
                 }
-                if (lines[i].startsWith('*CEND')) inData = true;
-                else if (inData) lines[i].split(/\s+/).forEach(t => { let v = parseFloat(t); if (!isNaN(v)) rawValues.push(v); });
+                
+                if (line.startsWith('*CEND')) { inData = true; continue; }
+                if (inData) {
+                    line.split(/\s+/).forEach(t => { let v = parseFloat(t); if (!isNaN(v)) rawValues.push(v); });
+                }
             }
+            
+            if (!pipeSize) pipeSize = isDM ? "N/A" : "Unknown Size";
             if (rawValues.length < 3) return null;
-            let baseDate = parseYYMMDDHHMM(startTimeStr), labels = [], flow = [], depth = [], velocity = [];
-            for (let j = 0, step = 0; j < rawValues.length; j += 3) {
+            let baseDate = parseYYMMDDHHMM(startTimeStr);
+            const labels = [], flow = [], depth = [], velocity = [];
+            let step = 0;
+            for (let j = 0; j < rawValues.length; j += 3) {
                 if (j + 2 >= rawValues.length) break;
                 labels.push(getStepLabel(baseDate, step, intervalMinutes));
                 flow.push(rawValues[j]); depth.push(rawValues[j+1]); velocity.push(rawValues[j+2]);
                 step++;
             }
-            return { labels, flow, depth, velocity, intervalMinutes, pipeSize: pipeSize || (isDM ? "N/A" : "Unknown") };
+            return { labels, flow, depth, velocity, intervalMinutes, pipeSize };
         }
 
         function processRainFile(text, fileName) {
             const lines = text.split(/\r?\n/);
             let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
             for (let i = 0; i < lines.length; i++) {
-                if (lines[i].startsWith('*CSTART')) {
-                    let m = lines[i+1]?.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
-                    if (m) { startTimeStr = m[1]; intervalMinutes = parseInt(m[2]); }
+                const line = lines[i].trim();
+                if (!line) continue;
+                if (line.startsWith('*CSTART')) {
+                    let paramLine2 = lines[i+1] ? lines[i+1].trim() : "";
+                    let match = paramLine2.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    if (match) { startTimeStr = match[1]; intervalMinutes = parseInt(match[2]); }
                 }
-                if (lines[i].startsWith('*CEND')) inData = true;
-                else if (inData) lines[i].split(/\s+/).forEach(t => { let v = parseFloat(t); if (!isNaN(v)) rawValues.push(v); });
+                if (line.startsWith('*CEND')) { inData = true; continue; }
+                if (inData) {
+                    line.split(/\s+/).forEach(t => { let v = parseFloat(t); if (!isNaN(v)) rawValues.push(v); });
+                }
             }
             if (rawValues.length === 0) return null;
             let baseDate = parseYYMMDDHHMM(startTimeStr);
+            
             const labels = [], rawIntensity = [];
-            rawValues.forEach((val, step) => { labels.push(getStepLabel(baseDate, step, intervalMinutes)); rawIntensity.push(val); });
-            const depths = rawIntensity.map(i => i * (intervalMinutes / 60));
-            return { labels, values: rawIntensity, depths: depths, totalDepth: depths.reduce((a, b) => a + b, 0), intervalMinutes };
+            rawValues.forEach((val, step) => {
+                labels.push(getStepLabel(baseDate, step, intervalMinutes));
+                rawIntensity.push(val);
+            });
+            const intervalHours = intervalMinutes / 60;
+            const depths = rawIntensity.map(intensity => intensity * intervalHours);
+            const totalDepth = depths.reduce((sum, d) => sum + d, 0);
+            return { 
+                labels, 
+                values: rawIntensity, 
+                depths: depths,       
+                totalDepth: totalDepth, 
+                intervalMinutes 
+            };
         }
 
         function parseYYMMDDHHMM(str) {
             if (!str || str.length !== 10) return new Date();
-            return new Date(20 + parseInt(str.substring(0,2)), parseInt(str.substring(2,4)) - 1, parseInt(str.substring(4,6)), parseInt(str.substring(6,8)), parseInt(str.substring(8,10)));
+            let yy = parseInt("20" + str.substring(0,2)), mm = parseInt(str.substring(2,4)) - 1,
+                dd = parseInt(str.substring(4,6)), hh = parseInt(str.substring(6,8)), min = parseInt(str.substring(8,10));
+            return new Date(yy, mm, dd, hh, min);
         }
 
         function getStepLabel(baseDate, step, interval) {
-            let d = new Date(baseDate.getTime() + (step * interval * 60 * 1000));
-            return `${d.getDate().toString().padStart(2, '0')} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getMonth()]} ${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+            let current = new Date(baseDate.getTime() + (step * interval * 60 * 1000));
+            let day = current.getDate().toString().padStart(2, '0');
+            let year = current.getFullYear();
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            let month = months[current.getMonth()];
+            let hh = current.getHours().toString().padStart(2, '0');
+            let mm = current.getMinutes().toString().padStart(2, '0');
+            return `${day} ${month} ${year} ${hh}:${mm}`;
         }
 
         function populateMonitorDropdown() {
             monitorSelector.innerHTML = '<option value="">-- No Monitor Station Selected --</option>';
-            Object.keys(fdvDatabase).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).forEach(k => {
-                let opt = document.createElement('option'); opt.value = k; opt.textContent = k.replace(/\.[fF][dD][vV]$/, ''); monitorSelector.appendChild(opt);
+            const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+            sortedFdvKeys.forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = key.replace(/\.[fF][dD][vV]$/, '');
+                monitorSelector.appendChild(opt);
             });
+            if (activeFdvKey) {
+                monitorSelector.value = activeFdvKey;
+            }
         }
 
         function populateRainDropdown() {
+            const previousSelection = rainSelector.value;
             rainSelector.innerHTML = '<option value="">-- No Rainfall Profile Selected --</option>';
-            Object.keys(rainDatabase).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).forEach(k => {
-                let opt = document.createElement('option'); opt.value = k; opt.textContent = k; rainSelector.appendChild(opt);
+            
+            const sortedRainKeys = Object.keys(rainDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+            sortedRainKeys.forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = key;
+                rainSelector.appendChild(opt);
             });
+            if (rainDatabase[previousSelection]) {
+                rainSelector.value = previousSelection;
+            }
         }
 
-        monitorSelector.addEventListener('change', (e) => { if(e.target.value) switchToFilePage(e.target.value); });
-        rainSelector.addEventListener('change', () => { updateRainfallChartTrack(); renderCumulativeComparisonChart(); calculateAndPopulateStats(); });
+        monitorSelector.addEventListener('change', (e) => {
+            if (e.target.value) {
+                switchToFilePage(e.target.value);
+            }
+        });
+        rainSelector.addEventListener('change', () => {
+            updateRainfallChartTrack();
+            renderCumulativeComparisonChart();
+            calculateAndPopulateStats();
+        });
 
-        function navigateMonitor(dir) {
-            const keys = Object.keys(fdvDatabase).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-            let idx = keys.indexOf(activeFdvKey) + dir;
-            if (idx < 0) idx = keys.length - 1; else if (idx >= keys.length) idx = 0;
-            switchToFilePage(keys[idx]);
+        function navigateMonitor(direction) {
+            const keys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+            if (keys.length === 0) return;
+            let currentIndex = keys.indexOf(activeFdvKey);
+            if (currentIndex === -1) currentIndex = 0;
+            let nextIndex = currentIndex + direction;
+            if (nextIndex < 0) nextIndex = keys.length - 1; 
+            if (nextIndex >= keys.length) nextIndex = 0; 
+            switchToFilePage(keys[nextIndex]);
         }
 
         prevMonitorBtn.addEventListener('click', () => navigateMonitor(-1));
@@ -302,73 +477,321 @@
         titleNextMonitorBtn.addEventListener('click', () => navigateMonitor(1));
 
         function switchToFilePage(fdvKey) {
+            if (!fdvKey || !fdvDatabase[fdvKey]) return;
             activeFdvKey = fdvKey;
-            const fdv = fdvDatabase[fdvKey];
-            activeMonitorHeader.textContent = fdvKey.replace(/\.[fF][dD][vV]$/, '');
+            
+            const fdvData = fdvDatabase[fdvKey];
+            const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
+            
+            activeMonitorHeader.textContent = cleanDisplayLabel;
             activeMonitorHeaderWrapper.style.display = 'flex';
-            pipeSizeDisplayBox.textContent = fdv.pipeSize;
-            if(monitorSelector.value !== fdvKey) monitorSelector.value = fdvKey;
+
+            pipeSizeDisplayBox.textContent = fdvData.pipeSize;
+
+            if (monitorSelector.value !== fdvKey) {
+                monitorSelector.value = fdvKey;
+            }
+
             hydraulicChartsWrapper.style.display = 'block';
-            renderPane('depthChart', fdv.labels, fdv.depth, 'Depth (mm)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'depth');
-            renderPane('flowChart', fdv.labels, fdv.flow, 'Flow (lit/sec)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'flow');
-            renderPane('velocityChart', fdv.labels, fdv.velocity, 'Velocity (m/s)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'velocity');
-            updateRainfallChartTrack(); renderCumulativeComparisonChart(); renderScatterCorrelationChart(); calculateAndPopulateStats();
+            renderPane('depthChart', fdvData.labels, fdvData.depth, 'Depth (mm)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'depth');
+            renderPane('flowChart', fdvData.labels, fdvData.flow, 'Flow (lit/sec)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'flow');
+            renderPane('velocityChart', fdvData.labels, fdvData.velocity, 'Velocity (m/s)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'velocity');
+            
+            updateRainfallChartTrack();
+            renderCumulativeComparisonChart();
+            renderScatterCorrelationChart();
+            calculateAndPopulateStats();
         }
 
         function updateRainfallChartTrack() {
-            const rain = rainDatabase[rainSelector.value];
-            if (rain) {
-                document.getElementById('rainPane').style.display = 'block';
-                renderPane('rainChart', rain.labels, rain.values, 'Intensity (mm/hr)', '#1e3a8a', '#1e3a8a', 'rain', true);
+            const selectedRainKey = rainSelector.value;
+            const rainPane = document.getElementById('rainPane');
+
+            if (selectedRainKey && rainDatabase[selectedRainKey]) {
+                rainPane.style.display = 'block';
+                const rainData = rainDatabase[selectedRainKey];
+                renderPane('rainChart', rainData.labels, rainData.values, 'Intensity (mm/hr)', '#1e3a8a', '#1e3a8a', 'rain', true);
             } else {
-                document.getElementById('rainPane').style.display = 'none';
+                rainPane.style.display = 'none';
                 if (charts.rain) { charts.rain.destroy(); charts.rain = null; }
             }
         }
 
         function renderCumulativeComparisonChart() {
-            const rainKeys = Object.keys(rainDatabase).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-            if (rainKeys.length === 0) { cumulativePane.style.display = 'none'; return; }
+            const rainKeys = Object.keys(rainDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+            if (rainKeys.length === 0) {
+                cumulativePane.style.display = 'none';
+                if (charts.cumulative) { charts.cumulative.destroy(); charts.cumulative = null; }
+                return;
+            }
+
             cumulativePane.style.display = 'block';
-            const labels = activeFdvKey ? fdvDatabase[activeFdvKey].labels : rainDatabase[rainKeys[0]].labels;
+            
+            let targetLabels = [];
+            if (activeFdvKey && fdvDatabase[activeFdvKey]) {
+                targetLabels = fdvDatabase[activeFdvKey].labels;
+            } else if (rainDatabase[rainKeys[0]]) {
+                targetLabels = rainDatabase[rainKeys[0]].labels;
+            }
+
+            const datasets = [];
+            rainKeys.forEach((gaugeKey, index) => {
+                const rainData = rainDatabase[gaugeKey];
+                let runningSum = 0;
+                const cumulativeValues = [];
+
+                for (let i = 0; i < targetLabels.length; i++) {
+                    const rawVal = rainData.depths[i];
+                    if (rawVal !== undefined && !isNaN(rawVal)) {
+                        runningSum += rawVal;
+                    }
+                    cumulativeValues.push(runningSum);
+                }
+
+                const color = lineColorsPalette[index % lineColorsPalette.length];
+
+                datasets.push({
+                    label: `${gaugeKey} (${runningSum.toFixed(2)} mm)`,
+                    data: cumulativeValues,
+                    borderColor: color,
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1,
+                    fill: false
+                });
+            });
+
             const ctx = document.getElementById('cumulativeChart').getContext('2d');
             if (charts.cumulative) charts.cumulative.destroy();
+
             charts.cumulative = new Chart(ctx, {
                 type: 'line',
-                data: { labels: labels, datasets: rainKeys.map((k, i) => {
-                    let sum = 0, data = labels.map((_, idx) => sum += (rainDatabase[k].depths[idx] || 0));
-                    return { label: k, data: data, borderColor: lineColorsPalette[i % lineColorsPalette.length], fill: false, pointRadius: 0 };
-                })},
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxTicksLimit: 4 } }, y: { title: { display: true, text: 'Total (mm)' } } } }
+                data: {
+                    labels: targetLabels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { bottom: 20 } },
+                    scales: {
+                        x: { 
+                            grid: { display: true, drawOnChartArea: false, drawTicks: true, tickLength: 6, tickColor: '#94a3b8' }, 
+                            ticks: { 
+                                maxTicksLimit: 4, 
+                                color: '#64748b', 
+                                font: { size: 9 },
+                                callback: function(value) {
+                                    let lbl = this.getLabelForValue(value);
+                                    if (lbl && typeof lbl === 'string') {
+                                        let parts = lbl.split(' ');
+                                        if (parts.length >= 3) return parts[0] + ' ' + parts[1] + ' ' + parts[2];
+                                    }
+                                    return lbl;
+                                }
+                            } 
+                        },
+                        y: { 
+                            grid: { color: '#f1f5f9' }, 
+                            ticks: { color: '#334155', font: { size: 10 } }, 
+                            title: { display: true, text: 'Total (mm)', font: { weight: 'bold', size: 10 } }
+                        }
+                    },
+                    plugins: { 
+                        legend: { 
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                font: { size: 10, weight: '500' },
+                                color: '#334155',
+                                padding: 8
+                            }
+                        }, 
+                        tooltip: { mode: 'index', intersect: false } 
+                    }
+                }
             });
         }
 
         function renderScatterCorrelationChart() {
-            if (!activeFdvKey) { scatterPane.style.display = 'none'; return; }
+            if (!activeFdvKey || !fdvDatabase[activeFdvKey]) {
+                scatterPane.style.display = 'none';
+                if (charts.scatter) {charts.scatter.destroy(); charts.scatter = null;}
+                return;
+            }
+
             scatterPane.style.display = 'block';
-            const fdv = fdvDatabase[activeFdvKey];
+            const fdvData = fdvDatabase[activeFdvKey];
+            const cleanDisplayLabel = activeFdvKey.replace(/\.[fF][dD][vV]$/, '');
+            
+            const coordinatePairs = [];
+            for (let i = 0; i < fdvData.depth.length; i++) {
+                coordinatePairs.push({ x: fdvData.velocity[i], y: fdvData.depth[i] });
+            }
+
             const ctx = document.getElementById('scatterChart').getContext('2d');
             if (charts.scatter) charts.scatter.destroy();
             charts.scatter = new Chart(ctx, {
                 type: 'scatter',
-                data: { datasets: [{ label: activeFdvKey, data: fdv.velocity.map((v, i) => ({x: v, y: fdv.depth[i]})), backgroundColor: 'rgba(239, 68, 68, 0.5)' }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Velocity (m/s)' } }, y: { title: { display: true, text: 'Depth (mm)' } } } }
+                data: {
+                    datasets: [{
+                        label: cleanDisplayLabel,
+                        data: coordinatePairs,
+                        backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                        borderColor: '#ef4444',
+                        pointRadius: 2.5,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { bottom: 15 } },
+                    scales: {
+                        x: {
+                            grid: { display: true, drawOnChartArea: false, drawTicks: true, tickLength: 6, tickColor: '#94a3b8' },
+                            ticks: { color: '#334155', font: { size: 9 } },
+                            title: { display: true, text: 'Velocity (m/s)', font: { weight: 'bold', size: 10 }, padding: { top: 10 } }
+                        },
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: { color: '#334155', font: { size: 9 } },
+                            title: { display: true, text: 'Depth (mm)', font: { weight: 'bold', size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) { return `Vel: ${context.parsed.x} m/s | Depth: ${context.parsed.y} mm`; }
+                            }
+                        }
+                    }
+                }
             });
         }
 
         function calculateAndPopulateStats() {
-            document.getElementById('tblTimeRange').textContent = activeFdvKey ? `${fdvDatabase[activeFdvKey].labels[0]} - ${fdvDatabase[activeFdvKey].labels[fdvDatabase[activeFdvKey].labels.length-1]}` : "—";
-            document.getElementById('tblTotalRain').textContent = rainDatabase[rainSelector.value] ? rainDatabase[rainSelector.value].totalDepth.toFixed(3) : "0.000";
-            document.getElementById('tblTotalVolume').textContent = activeFdvKey ? (fdvDatabase[activeFdvKey].flow.reduce((a,b)=>a+b,0) * (fdvDatabase[activeFdvKey].intervalMinutes*60)/1000).toLocaleString('en-US', {minimumFractionDigits: 3}) : "0.000";
+            let activeLabels = [];
+            let hasData = false;
+            let totalRainSum = 0;
+            let calculatedVolumeM3 = 0;
+
+            document.getElementById('tblTimeRange').textContent = "0000-00-00 00:00:00 - 0000-00-00 00:00:00";
+            document.getElementById('tblTotalRain').textContent = "0.000";
+            document.getElementById('tblTotalVolume').textContent = "0.000";
+            
+            ['Rain', 'Depth', 'Flow', 'Vel'].forEach(p => {
+                document.getElementById(`mMin${p}`).textContent = "0";
+                document.getElementById(`mMax${p}`).textContent = "0";
+                document.getElementById(`mAvg${p}`).textContent = "0";
+            });
+
+            if (activeFdvKey && fdvDatabase[activeFdvKey]) {
+                const fdv = fdvDatabase[activeFdvKey];
+                activeLabels = fdv.labels;
+                hasData = true;
+
+                const flowStats = computeArrayMetrics(fdv.flow);
+                document.getElementById('mMinFlow').textContent = flowStats.min.toFixed(3);
+                document.getElementById('mMaxFlow').textContent = flowStats.max.toFixed(3);
+                document.getElementById('mAvgFlow').textContent = flowStats.avg.toFixed(3);
+
+                const depthStats = computeArrayMetrics(fdv.depth);
+                document.getElementById('mMinDepth').textContent = depthStats.min.toFixed(2);
+                document.getElementById('mMaxDepth').textContent = depthStats.max.toFixed(2);
+                document.getElementById('mAvgDepth').textContent = depthStats.avg.toFixed(2);
+
+                const velStats = computeArrayMetrics(fdv.velocity);
+                document.getElementById('mMinVel').textContent = velStats.min.toFixed(2);
+                document.getElementById('mMaxVel').textContent = velStats.max.toFixed(2);
+                document.getElementById('mAvgVel').textContent = velStats.avg.toFixed(2);
+
+                let timeStepSeconds = (fdv.intervalMinutes || 2) * 60;
+                let integratedLiters = fdv.flow.reduce((acc, curr) => acc + (isNaN(curr) ? 0 : curr), 0) * timeStepSeconds;
+                calculatedVolumeM3 = integratedLiters / 1000;
+                document.getElementById('tblTotalVolume').textContent = calculatedVolumeM3.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3});
+            }
+
+            const selectedRainKey = rainSelector.value;
+            if (selectedRainKey && rainDatabase[selectedRainKey]) {
+                const rain = rainDatabase[selectedRainKey];
+                if (activeLabels.length === 0) activeLabels = rain.labels;
+                hasData = true;
+
+                const rainStats = computeArrayMetrics(rain.values);
+                document.getElementById('mMinRain').textContent = rainStats.min.toFixed(1);
+                document.getElementById('mMaxRain').textContent = rainStats.max.toFixed(1);
+                document.getElementById('mAvgRain').textContent = rainStats.avg.toFixed(2);
+
+                const depthMetricStats = computeArrayMetrics(rain.depths);
+                document.getElementById('mMinDepth').textContent = depthMetricStats.min.toFixed(2);
+                document.getElementById('mMaxDepth').textContent = depthMetricStats.max.toFixed(2);
+                document.getElementById('mAvgDepth').textContent = depthMetricStats.avg.toFixed(3);
+
+                totalRainSum = rain.totalDepth;
+                document.getElementById('tblTotalRain').textContent = totalRainSum.toFixed(3);
+            }
+
+            if (hasData && activeLabels.length > 0) {
+                document.getElementById('tblTimeRange').textContent = `${activeLabels[0]} - ${activeLabels[activeLabels.length - 1]}`;
+            }
         }
 
-        function renderPane(id, labels, data, title, color, bg, key, invertY = false) {
-            const ctx = document.getElementById(id).getContext('2d');
+        function computeArrayMetrics(arr) {
+            if (!arr || arr.length === 0) return { min: 0, max: 0, avg: 0 };
+            let min = Infinity, max = -Infinity, sum = 0, count = 0;
+            for (let i = 0; i < arr.length; i++) {
+                const val = arr[i];
+                if (val !== undefined && !isNaN(val)) {
+                    if (val < min) min = val;
+                    if (val > max) max = val;
+                    sum += val;
+                    count++;
+                }
+            }
+            return {
+                min: min === Infinity ? 0 : min, max: max === -Infinity ? 0 : max, avg: count === 0 ? 0 : (sum / count)
+            };
+        }
+
+        function renderPane(canvasId, labels, data, labelTitle, primaryColor, fillBG, key, invertY = false) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
             if (charts[key]) charts[key].destroy();
             charts[key] = new Chart(ctx, {
                 type: invertY ? 'bar' : 'line',
-                data: { labels: labels, datasets: [{ data: data, borderColor: color, backgroundColor: bg, fill: true, pointRadius: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxTicksLimit: 10 } }, y: { title: { display: true, text: title }, reverse: invertY } } }
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, borderColor: primaryColor, backgroundColor: fillBG, borderWidth: invertY ? 0 : 1.5, 
+                    barPercentage: 1.0, categoryPercentage: 1.0, pointRadius: 0, fill: true, tension: 0.02 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    layout: { padding: { bottom: 20 } },
+                    scales: {
+                        x: { 
+                            grid: { display: true, drawOnChartArea: false, drawTicks: true, tickLength: 6, tickColor: '#94a3b8' }, 
+                            ticks: { 
+                                maxTicksLimit: 10, 
+                                color: '#64748b', 
+                                font: { size: 10 },
+                                callback: function(value) {
+                                    let lbl = this.getLabelForValue(value);
+                                    if (lbl && typeof lbl === 'string') {
+                                        let parts = lbl.split(' ');
+                                        if (parts.length >= 3) return parts[0] + ' ' + parts[1] + ' ' + parts[2];
+                                    }
+                                    return lbl;
+                                }
+                            } 
+                        },
+                        y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 11 } }, title: { display: true, text: labelTitle, 
+                        font: { weight: 'bold', size: 11 } }, reverse: invertY }
+                    },
+                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
+                }
             });
         }
     </script>
