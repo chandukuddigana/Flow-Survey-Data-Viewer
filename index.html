@@ -2,23 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flow Survey Data Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; background: #f8fafc; }
-        .sidebar { width: 280px; background: #0f172a; color: white; display: flex; flex-direction: column; }
+        /* Full CSS for Layout Integrity */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #222; background-color: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 280px; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; border-right: 1px solid #1e293b; flex-shrink: 0; }
         .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #1e293b; }
-        .sidebar-header h2 { font-size: 14px; margin: 0; color: #38bdf8; }
-        .file-list { flex: 1; overflow-y: auto; padding: 15px; }
-        .list-section-title { font-size: 11px; color: #64748b; margin: 15px 0 5px; text-transform: uppercase; }
-        .station-item { padding: 10px; background: #1e293b; margin-bottom: 5px; cursor: pointer; border-radius: 4px; font-size: 13px; }
-        .station-item.active { background: #22c55e; }
-        .main-content { flex: 1; display: flex; flex-direction: column; }
-        .upload-zone { border: 2px dashed #38bdf8; padding: 40px; margin: 20px; text-align: center; cursor: pointer; background: white; }
-        .workspace { display: none; padding: 20px; }
-        .graph-pane { background: white; padding: 15px; margin-bottom: 20px; border: 1px solid #e2e8f0; height: 250px; }
+        .sidebar-header h2 { margin: 0; font-size: 14px; color: #38bdf8; text-transform: uppercase; }
+        .file-list { flex: 1; overflow-y: auto; padding: 15px 10px; }
+        .list-section-title { font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase; margin: 15px 0 5px 5px; }
+        .station-item { padding: 10px; margin-bottom: 6px; border-radius: 6px; background: #1e293b; cursor: pointer; font-size: 13px; border: 1px solid #334155; }
+        .station-item.active { background: #22c55e; color: white; font-weight: bold; }
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        .upload-zone { border: 2px dashed #38bdf8; padding: 50px; margin: 25px; text-align: center; background: white; cursor: pointer; }
+        .workspace { display: none; padding: 25px; }
+        .graph-pane { background: white; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; height: 250px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 12px; }
+        th, td { border: 1px solid #1e3a8a; padding: 8px; text-align: center; font-size: 12px; }
+        th { background: #f0f4f8; color: #1e3a8a; }
     </style>
 </head>
 <body>
@@ -41,12 +44,15 @@
     <div id="workspace" class="workspace">
         <div class="graph-pane"><h3>Rainfall Intensity (mm/hr)</h3><canvas id="rainChart"></canvas></div>
         <div class="graph-pane"><h3>Cumulative Rainfall (mm)</h3><canvas id="cumulativeChart"></canvas></div>
-        <div id="statsArea"></div>
+        <table id="statsTable">
+            <thead><tr><th>Metric</th><th>Rain (mm/hr)</th><th>Depth (mm)</th></tr></thead>
+            <tbody id="statsBody"></tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    // 1. STOP BROWSER FROM OPENING FILES IN NEW TABS
+    // 1. PREVENT BROWSER OPENING FILES IN NEW TABS
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
         window.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, false);
     });
@@ -59,54 +65,45 @@
     dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
 
     function handleFiles(files) {
-        document.getElementById('dropZone').style.display = 'none';
+        dropZone.style.display = 'none';
         document.getElementById('workspace').style.display = 'block';
 
         for (let file of files) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const text = e.target.result;
-                const fileName = file.name;
-                
-                if (fileName.toLowerCase().endsWith('.r')) {
-                    processRainfall(text, fileName);
-                } else {
-                    processFdv(text, fileName);
-                }
+                if (file.name.toLowerCase().endsWith('.r')) processRainfall(text, file.name);
+                else if (file.name.toLowerCase().endsWith('.fdv')) processFdv(text, file.name);
             };
             reader.readAsText(file);
         }
     }
 
     function processRainfall(text, name) {
-        // Assume 2 minute interval as default
-        const intervalHours = 2 / 60; 
+        const intervalHours = 2 / 60; // Assuming 2 min interval
         const lines = text.split(/\r?\n/);
-        let intensities = []; 
+        let intensities = [];
         let inData = false;
 
         lines.forEach(line => {
             if (line.startsWith('*CEND')) inData = true;
             else if (inData) {
-                line.split(/\s+/).forEach(val => {
-                    let v = parseFloat(val);
-                    if (!isNaN(v)) intensities.push(v);
-                });
+                line.split(/\s+/).forEach(v => { if(!isNaN(parseFloat(v))) intensities.push(parseFloat(v)); });
             }
         });
 
-        // CONVERSION: Intensity (mm/hr) * hours = Depth (mm)
+        // Conversion Logic: Intensity(mm/hr) * hours = Depth(mm)
         const depths = intensities.map(i => i * intervalHours);
         const cumulative = [];
-        let running = 0;
-        depths.forEach(d => { running += d; cumulative.push(running); });
+        let sum = 0;
+        depths.forEach(d => { sum += d; cumulative.push(sum); });
 
-        // Update UI logic goes here (Charts/Tables)
-        console.log("Rainfall data parsed for:", name);
+        console.log("Processed Rainfall:", { intensities, cumulative });
+        // NOTE: Now integrate your Chart.js rendering calls here using 'intensities' and 'cumulative'
     }
 
     function processFdv(text, name) {
-        // Clean name by removing extension
+        // UI Clean: Remove .fdv
         const cleanName = name.replace(/\.[fF][dD][vV]$/, '');
         const div = document.createElement('div');
         div.className = 'station-item';
