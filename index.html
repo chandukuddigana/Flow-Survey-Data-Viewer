@@ -12,8 +12,12 @@
         .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100%; min-width: 0; padding: 0; }
         .top-banner { background: #fff; padding: 10px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; min-height: 20px; }
         
-        /* Large Bold Red Center-Aligned Target Identifier Title */
-        .active-monitor-header { font-size: 26px; font-weight: 800; color: #ef4444; margin: 0 0 20px 0; text-transform: uppercase; letter-spacing: 0.5px; display: none; text-align: center; width: 100%; }
+        /* Large Bold Red Center-Aligned Target Identifier Title Wrapper and Buttons */
+        .active-monitor-header-wrapper { display: none; justify-content: center; align-items: center; gap: 24px; margin: 0 0 20px 0; width: 100%; user-select: none; }
+        .active-monitor-header { font-size: 26px; font-weight: 800; color: #ef4444; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; }
+        .title-nav-arrow-btn { background: none; border: none; font-size: 24px; color: #ef4444; cursor: pointer; transition: all 0.1s ease; padding: 5px 14px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .title-nav-arrow-btn:hover { color: #b91c1c; background-color: #fee2e2; transform: scale(1.15); }
+        .title-nav-arrow-btn:active { transform: scale(0.92); }
 
         /* Clickable Drop Zone area */
         .upload-zone { border: 2px dashed #38bdf8; padding: 35px 25px; text-align: center; background: #fff; border-radius: 8px; margin: 25px; cursor: pointer; transition: background 0.15s ease-in-out; flex-shrink: 0; }
@@ -80,7 +84,11 @@
 
         <div class="workspace-view" id="workspaceView">
             
-            <div class="active-monitor-header" id="activeMonitorHeader"></div>
+            <div class="active-monitor-header-wrapper" id="activeMonitorHeaderWrapper">
+                <button class="title-nav-arrow-btn" id="titlePrevMonitorBtn" title="Previous Monitor">◀</button>
+                <div class="active-monitor-header" id="activeMonitorHeader"></div>
+                <button class="title-nav-arrow-btn" id="titleNextMonitorBtn" title="Next Monitor">▶</button>
+            </div>
 
             <div class="workspace-layout">
                 
@@ -208,6 +216,7 @@
         const dropZone = document.getElementById('dropZone');
         const statusDiv = document.getElementById('status');
         const workspaceView = document.getElementById('workspaceView');
+        const activeMonitorHeaderWrapper = document.getElementById('activeMonitorHeaderWrapper');
         const activeMonitorHeader = document.getElementById('activeMonitorHeader');
         const hydraulicChartsWrapper = document.getElementById('hydraulicChartsWrapper');
         const cumulativePane = document.getElementById('cumulativePane');
@@ -218,6 +227,8 @@
         const pipeSizeDisplayBox = document.getElementById('pipeSizeDisplayBox');
         const prevMonitorBtn = document.getElementById('prevMonitorBtn');
         const nextMonitorBtn = document.getElementById('nextMonitorBtn');
+        const titlePrevMonitorBtn = document.getElementById('titlePrevMonitorBtn');
+        const titleNextMonitorBtn = document.getElementById('titleNextMonitorBtn');
         let fdvDatabase = {};
         let rainDatabase = {};
         let activeFdvKey = null;
@@ -281,7 +292,7 @@
                         if (activeFdvKey) {
                             switchToFilePage(activeFdvKey);
                         } else {
-                            activeMonitorHeader.style.display = 'none';
+                            activeMonitorHeaderWrapper.style.display = 'none';
                             hydraulicChartsWrapper.style.display = 'none';
                             scatterPane.style.display = 'none';
                             pipeSizeDisplayBox.textContent = "—";
@@ -449,24 +460,23 @@
             calculateAndPopulateStats();
         });
 
-        // Left and Right Arrow Navigation Event Listeners
-        prevMonitorBtn.addEventListener('click', () => {
+        // Unified Navigation Controller Helper Routine
+        function navigateMonitor(direction) {
             const keys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
             if (keys.length === 0) return;
             let currentIndex = keys.indexOf(activeFdvKey);
-            let nextIndex = currentIndex - 1;
+            if (currentIndex === -1) currentIndex = 0;
+            let nextIndex = currentIndex + direction;
             if (nextIndex < 0) nextIndex = keys.length - 1; // Cycle to end
-            switchToFilePage(keys[nextIndex]);
-        });
-
-        nextMonitorBtn.addEventListener('click', () => {
-            const keys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-            if (keys.length === 0) return;
-            let currentIndex = keys.indexOf(activeFdvKey);
-            let nextIndex = currentIndex + 1;
             if (nextIndex >= keys.length) nextIndex = 0; // Cycle to beginning
             switchToFilePage(keys[nextIndex]);
-        });
+        }
+
+        // Attach listeners for both side-panel arrows and header-title arrows
+        prevMonitorBtn.addEventListener('click', () => navigateMonitor(-1));
+        nextMonitorBtn.addEventListener('click', () => navigateMonitor(1));
+        titlePrevMonitorBtn.addEventListener('click', () => navigateMonitor(-1));
+        titleNextMonitorBtn.addEventListener('click', () => navigateMonitor(1));
 
         function switchToFilePage(fdvKey) {
             if (!fdvKey || !fdvDatabase[fdvKey]) return;
@@ -476,7 +486,7 @@
             const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
             
             activeMonitorHeader.textContent = cleanDisplayLabel;
-            activeMonitorHeader.style.display = 'block';
+            activeMonitorHeaderWrapper.style.display = 'flex';
 
             pipeSizeDisplayBox.textContent = fdvData.pipeSize;
 
@@ -745,9 +755,7 @@
                 }
             }
             return {
-                min: min === Infinity ? 0 : min,
-                max: max === -Infinity ? 0 : max,
-                avg: count === 0 ? 0 : (sum / count)
+                min: min === Infinity ? 0 : min, max: max === -Infinity ? 0 : max, avg: count === 0 ? 0 : (sum / count)
             };
         }
 
