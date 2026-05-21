@@ -3,43 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flow Survey Data Viewer</title>
-    <!-- Include SheetJS for Excel files -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Include PapaParse for FDV/CSV text files -->
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <title>ICM FDV Native Multi-Pane Chart Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 30px; color: #333; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .upload-zone { border: 2px dashed #ccc; padding: 30px; text-align: center; background: #f9f9f9; border-radius: 8px; margin-bottom: 20px; }
-        .upload-zone:hover { border-color: #0066cc; background: #f0f7ff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; color: #222; background-color: #f7f9fa; }
+        .container { max-width: 1300px; margin: 0 auto; }
+        .upload-zone { border: 2px dashed #0052cc; padding: 25px; text-align: center; background: #fff; border-radius: 6px; margin-bottom: 20px; transition: 0.2s; }
+        .upload-zone:hover { border-color: #0022aa; background: #fafafa; }
         #fileInput { display: none; }
-        .btn { background: #0066cc; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; display: inline-block; font-weight: bold; }
-        .status { margin-top: 10px; color: #666; font-style: italic; }
-        .table-container { overflow-x: auto; margin-top: 20px; border: 1px solid #e0e0e0; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
-        th { background-color: #f4f4f4; padding: 12px; border-bottom: 2px solid #ddd; position: sticky; top: 0; }
-        td { padding: 10px; border-bottom: 1px solid #eee; }
-        tr:hover { background-color: #fcfcfc; }
+        .btn { background: #0052cc; color: white; padding: 12px 24px; border-radius: 4px; cursor: pointer; display: inline-block; font-weight: bold; font-size: 14px; }
+        .btn:hover { background: #0040a3; }
+        .status { margin-top: 12px; color: #555; font-size: 14px; font-weight: 500; }
+        
+        .dashboard { display: none; margin-top: 25px; }
+        .graph-pane { background: #fff; padding: 18px; border: 1px solid #dcdcdc; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); height: 250px; position: relative; }
+        h3 { margin: 0 0 12px 0; font-size: 13px; color: #0033aa; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f0f2f5; padding-bottom: 6px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Flow Survey Data Viewer</h2>
-        <p>Upload your Excel (.xlsx, .xls) or Flow Survey (.fdv) files to view the raw data instantly.</p>
+        <h2>Flow Survey Graphing Interface <span style="font-size:14px; font-weight:normal; color:#666;">(Native .FDV Text Stream Parser)</span></h2>
         
         <div class="upload-zone" id="dropZone">
-            <label for="fileInput" class="btn">Select File</label>
-            <input type="file" id="fileInput" accept=".xlsx, .xls, .fdv, .txt, .csv">
-            <p>or drag and drop your file here</p>
-            <div id="status" class="status">Ready for file...</div>
+            <label for="fileInput" class="btn">Select Native FDV File</label>
+            <input type="file" id="fileInput" accept=".fdv,.txt">
+            <p style="margin: 10px 0 0 0; color: #666; font-size: 13px;">Drag & drop your native telemetry or model export file here</p>
+            <div id="status" class="status">Awaiting data format package submission...</div>
         </div>
 
-        <div class="table-container">
-            <table id="dataTable">
-                <thead><tr id="tableHeader"></tr></thead>
-                <tbody id="tableBody"></tbody>
-            </table>
+        <div class="dashboard" id="dashboard">
+            <div class="graph-pane">
+                <h3>Flow Profile (L/S)</h3>
+                <canvas id="flowChart"></canvas>
+            </div>
+            <div class="graph-pane">
+                <h3>Depth Profile (MM)</h3>
+                <canvas id="depthChart"></canvas>
+            </div>
+            <div class="graph-pane">
+                <h3>Velocity Profile (M/S)</h3>
+                <canvas id="velocityChart"></canvas>
+            </div>
         </div>
     </div>
 
@@ -47,94 +51,166 @@
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('dropZone');
         const statusDiv = document.getElementById('status');
+        const dashboard = document.getElementById('dashboard');
+        
+        let charts = { flow: null, depth: null, velocity: null };
 
-        // Handle file selection
         fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
-
-        // Drag and drop handlers
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#0066cc'; });
-        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#ccc'; });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.background = '#f0f5ff'; });
+        dropZone.addEventListener('dragleave', () => { dropZone.style.background = '#fff'; });
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropZone.style.borderColor = '#ccc';
+            dropZone.style.background = '#fff';
             if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
         });
 
         function handleFile(file) {
             if (!file) return;
-            statusDiv.textContent = `Processing: ${file.name}...`;
-            const extension = file.name.split('.').pop().toLowerCase();
+            statusDiv.textContent = `Reading data blocks from "${file.name}"...`;
+            dashboard.style.display = 'none';
 
-            if (extension === 'xlsx' || extension === 'xls') {
-                parseExcel(file);
-            } else {
-                // Treat .fdv, .csv, or .txt as text data
-                parseText(file);
-            }
-        }
-
-        function parseExcel(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                // Target the first sheet in the workbook
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                // Convert to array of arrays
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                renderTable(jsonData);
+                parseNativeFDV(e.target.result);
             };
-            reader.readAsArrayBuffer(file);
+            reader.readAsText(file);
         }
 
-        function parseText(file) {
-            Papa.parse(file, {
-                complete: function(results) {
-                    renderTable(results.data);
-                },
-                dynamicTyping: true,
-                skipEmptyLines: true
-            });
-        }
-
-        function renderTable(data) {
-            const headerRow = document.getElementById('tableHeader');
-            const bodyContainer = document.getElementById('tableBody');
+        function parseNativeFDV(text) {
+            const lines = text.split(/\r?\n/);
             
-            // Clear previous data
-            headerRow.innerHTML = '';
-            bodyContainer.innerHTML = '';
+            let startTimeStr = "";
+            let intervalMinutes = 2; // Default template fallback
+            let inDataSection = false;
+            let rawValuesArray = [];
 
-            if (!data || data.length === 0) {
-                statusDiv.textContent = "Error: File appears to be empty.";
+            // Step 1: Scan and isolate tracking structural components
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                if (line.startsWith('*CSTART')) {
+                    // Look at the next few initialization parameter rows
+                    let paramLine1 = lines[i+1] ? lines[i+1].trim() : "";
+                    let paramLine2 = lines[i+2] ? lines[i+2].trim() : "";
+                    
+                    // Pull initialization parameters from metadata
+                    let match = paramLine2.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    if (match) {
+                        startTimeStr = match[1]; // e.g., 2503071110
+                        intervalMinutes = parseInt(match[2]); // e.g., 2
+                    }
+                }
+                
+                if (line.startsWith('*CEND')) {
+                    inDataSection = true;
+                    continue;
+                }
+
+                // If inside data block, convert layout into numeric sequences
+                if (inDataSection) {
+                    let segments = line.split(/\s+/);
+                    segments.forEach(token => {
+                        let val = parseFloat(token);
+                        if (!isNaN(val)) {
+                            rawValuesArray.push(val);
+                        }
+                    });
+                }
+            }
+
+            // Step 2: Ensure data parsing safety
+            if (rawValuesArray.length < 3) {
+                statusDiv.textContent = "Error: Found metadata, but failed to reconstruct valid data channels.";
                 return;
             }
 
-            // Generate Headers (Row 0)
-            const headers = data[0];
-            headers.forEach(headerText => {
-                const th = document.createElement('th');
-                th.textContent = headerText !== undefined ? headerText : '';
-                headerRow.appendChild(th);
-            });
-
-            // Generate Data Rows
-            for (let i = 1; i < data.length; i++) {
-                const rowData = data[i];
-                // Skip completely empty rows
-                if (rowData.every(cell => cell === null || cell === '')) continue;
-
-                const tr = document.createElement('tr');
-                // Ensure row displays columns matching the header length
-                for (let j = 0; j < headers.length; j++) {
-                    const td = document.createElement('td');
-                    td.textContent = rowData[j] !== undefined ? rowData[j] : '';
-                    tr.appendChild(td);
-                }
-                bodyContainer.appendChild(tr);
+            // Step 3: Parse dates from YYMMDDHHMM strings
+            let baseDate = new Date();
+            if (startTimeStr.length === 10) {
+                let yy = parseInt("20" + startTimeStr.substring(0,2));
+                let mm = parseInt(startTimeStr.substring(2,4)) - 1;
+                let dd = parseInt(startTimeStr.substring(4,6));
+                let hh = parseInt(startTimeStr.substring(6,8));
+                let min = parseInt(startTimeStr.substring(8,10));
+                baseDate = new Date(yy, mm, dd, hh, min);
             }
-            statusDiv.textContent = `Successfully loaded ${data.length - 1} rows.`;
+
+            // Step 4: Map values sequentially into distinct channel buckets
+            const timeLabels = [];
+            const flowData = [];
+            const depthData = [];
+            const velocityData = [];
+
+            let stepCount = 0;
+            // Iterate in steps of 3 (Flow, Depth, Velocity matrix layout)
+            for (let j = 0; j < rawValuesArray.length; j += 3) {
+                if (j + 2 >= rawValuesArray.length) break; 
+
+                // Generate incremental timestamp label
+                let currentStepTime = new Date(baseDate.getTime() + (stepCount * intervalMinutes * 60 * 1000));
+                let timeStampLabel = currentStepTime.toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'}) + ' ' + 
+                                     currentStepTime.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+                
+                timeLabels.push(timeStampLabel);
+                flowData.push(rawValuesArray[j]);       // Flow data array index
+                depthData.push(rawValuesArray[j+1]);    // Depth data array index
+                velocityData.push(rawValuesArray[j+2]); // Velocity data array index
+                
+                stepCount++;
+            }
+
+            statusDiv.textContent = `Parsed ${stepCount} steps successfully! Displaying 3-axis stacked telemetry window.`;
+            dashboard.style.display = 'block';
+
+            // Step 5: Render individual canvas rows
+            renderPane('flowChart', timeLabels, flowData, 'Flow (L/S)', '#9b59b6', 'rgba(155, 89, 182, 0.04)', 'flow');
+            renderPane('depthChart', timeLabels, depthData, 'Depth (MM)', '#2980b9', 'rgba(41, 128, 185, 0.04)', 'depth');
+            renderPane('velocityChart', timeLabels, velocityData, 'Velocity (M/S)', '#27ae60', 'rgba(39, 174, 96, 0.04)', 'velocity');
+        }
+
+        function renderPane(canvasId, labels, data, labelTitle, primaryColor, fillBG, key) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            if (charts[key]) {
+                charts[key].destroy();
+            }
+
+            charts[key] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        borderColor: primaryColor,
+                        backgroundColor: fillBG,
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: true,
+                        tension: 0.02
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 12, color: '#666', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: '#eaeded' },
+                            ticks: { color: '#444', font: { size: 11 } },
+                            title: { display: true, text: labelTitle, font: { weight: 'bold', size: 11 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
         }
     </script>
 </body>
