@@ -306,11 +306,22 @@
             }
         }
 
+        // --- UPDATED DATE PARSING LOGIC ---
+        // Expects format: DDMMYYHHMM (10 digits)
+        function parseDate(str) {
+            if (!str || str.length < 10) return new Date();
+            let dd = parseInt(str.substring(0, 2));
+            let mm = parseInt(str.substring(2, 4)) - 1;
+            let yy = parseInt("20" + str.substring(4, 6)); 
+            let hh = parseInt(str.substring(6, 8));
+            let min = parseInt(str.substring(8, 10));
+            return new Date(yy, mm, dd, hh, min);
+        }
+
         function processFdvFile(text, filename) {
             const lines = text.split(/\r?\n/);
             let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
             let pipeSize = "";
-            
             const isDM = filename.toUpperCase().includes("_DM") || filename.toUpperCase().includes(".DM");
 
             for (let i = 0; i < lines.length; i++) {
@@ -322,24 +333,17 @@
                         pipeSize = "N/A";
                     } else {
                         let paramLine1 = lines[i+1] ? lines[i+1].trim() : "";
-                        if (paramLine1) {
-                            let cleanParam = paramLine1.replace(/[*#]/g, '').trim();
-                            let sizeMatch = cleanParam.match(/\d+/);
-                            if (sizeMatch) {
-                                pipeSize = sizeMatch[0] + "mm";
-                            } else {
-                                pipeSize = cleanParam;
-                            }
-                        }
+                        let cleanParam = paramLine1.replace(/[*#]/g, '').trim();
+                        let sizeMatch = cleanParam.match(/\d+/);
+                        pipeSize = sizeMatch ? sizeMatch[0] + "mm" : cleanParam;
                     }
 
                     let paramLine1ForTime = lines[i+1] ? lines[i+1].trim() : "";
                     let paramLineNext = lines[i+2] ? lines[i+2].trim() : "";
                     
-                    // FIXED: REGEX TO CAPTURE 12 DIGIT DATE (DDMMYYYYHHMM)
-                    let match = paramLineNext.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
+                    let match = paramLineNext.match(/(\d{10})\s+\d{10}\s+(\d+)/);
                     if (!match && paramLine1ForTime) {
-                        match = paramLine1ForTime.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
+                        match = paramLine1ForTime.match(/(\d{10})\s+\d{10}\s+(\d+)/);
                     }
                     if (match) { 
                         startTimeStr = match[1];
@@ -375,8 +379,7 @@
                 if (!line) continue;
                 if (line.startsWith('*CSTART')) {
                     let paramLine2 = lines[i+1] ? lines[i+1].trim() : "";
-                    // FIXED: REGEX TO CAPTURE 12 DIGIT DATE (DDMMYYYYHHMM)
-                    let match = paramLine2.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
+                    let match = paramLine2.match(/(\d{10})\s+\d{10}\s+(\d+)/);
                     if (match) { startTimeStr = match[1]; intervalMinutes = parseInt(match[2]); }
                 }
                 if (line.startsWith('*CEND')) { inData = true; continue; }
@@ -392,27 +395,8 @@
                 labels.push(getStepLabel(baseDate, step, intervalMinutes));
                 rawIntensity.push(val);
             });
-            const intervalHours = intervalMinutes / 60;
-            const depths = rawIntensity.map(intensity => intensity * intervalHours);
-            const totalDepth = depths.reduce((sum, d) => sum + d, 0);
-            return { 
-                labels, 
-                values: rawIntensity, 
-                depths: depths,       
-                totalDepth: totalDepth, 
-                intervalMinutes 
-            };
-        }
-
-        // FIXED: PARSE DATE FUNCTION FOR DDMMYYYYHHMM
-        function parseDate(str) {
-            if (!str || str.length < 12) return new Date();
-            let dd = parseInt(str.substring(0,2)),
-                mm = parseInt(str.substring(2,4)) - 1,
-                yyyy = parseInt(str.substring(4,8)),
-                hh = parseInt(str.substring(8,10)),
-                min = parseInt(str.substring(10,12));
-            return new Date(yyyy, mm, dd, hh, min);
+            const depths = rawIntensity.map(intensity => intensity * (intervalMinutes / 60));
+            return { labels, values: rawIntensity, depths, totalDepth: depths.reduce((a, b) => a + b, 0), intervalMinutes };
         }
 
         function getStepLabel(baseDate, step, interval) {
@@ -435,15 +419,12 @@
                 opt.textContent = key.replace(/\.[fF][dD][vV]$/, '');
                 monitorSelector.appendChild(opt);
             });
-            if (activeFdvKey) {
-                monitorSelector.value = activeFdvKey;
-            }
+            if (activeFdvKey) monitorSelector.value = activeFdvKey;
         }
 
         function populateRainDropdown() {
             const previousSelection = rainSelector.value;
             rainSelector.innerHTML = '<option value="">-- No Rainfall Profile Selected --</option>';
-            
             const sortedRainKeys = Object.keys(rainDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
             sortedRainKeys.forEach(key => {
                 const opt = document.createElement('option');
@@ -451,21 +432,11 @@
                 opt.textContent = key;
                 rainSelector.appendChild(opt);
             });
-            if (rainDatabase[previousSelection]) {
-                rainSelector.value = previousSelection;
-            }
+            if (rainDatabase[previousSelection]) rainSelector.value = previousSelection;
         }
 
-        monitorSelector.addEventListener('change', (e) => {
-            if (e.target.value) {
-                switchToFilePage(e.target.value);
-            }
-        });
-        rainSelector.addEventListener('change', () => {
-            updateRainfallChartTrack();
-            renderCumulativeComparisonChart();
-            calculateAndPopulateStats();
-        });
+        monitorSelector.addEventListener('change', (e) => { if (e.target.value) switchToFilePage(e.target.value); });
+        rainSelector.addEventListener('change', () => { updateRainfallChartTrack(); renderCumulativeComparisonChart(); calculateAndPopulateStats(); });
 
         function navigateMonitor(direction) {
             const keys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
@@ -486,24 +457,15 @@
         function switchToFilePage(fdvKey) {
             if (!fdvKey || !fdvDatabase[fdvKey]) return;
             activeFdvKey = fdvKey;
-            
             const fdvData = fdvDatabase[fdvKey];
-            const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
-            
-            activeMonitorHeader.textContent = cleanDisplayLabel;
+            activeMonitorHeader.textContent = fdvKey.replace(/\.[fF][dD][vV]$/, '');
             activeMonitorHeaderWrapper.style.display = 'flex';
-
             pipeSizeDisplayBox.textContent = fdvData.pipeSize;
-
-            if (monitorSelector.value !== fdvKey) {
-                monitorSelector.value = fdvKey;
-            }
-
+            if (monitorSelector.value !== fdvKey) monitorSelector.value = fdvKey;
             hydraulicChartsWrapper.style.display = 'block';
             renderPane('depthChart', fdvData.labels, fdvData.depth, 'Depth (mm)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'depth');
             renderPane('flowChart', fdvData.labels, fdvData.flow, 'Flow (lit/sec)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'flow');
             renderPane('velocityChart', fdvData.labels, fdvData.velocity, 'Velocity (m/s)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'velocity');
-            
             updateRainfallChartTrack();
             renderCumulativeComparisonChart();
             renderScatterCorrelationChart();
@@ -513,7 +475,6 @@
         function updateRainfallChartTrack() {
             const selectedRainKey = rainSelector.value;
             const rainPane = document.getElementById('rainPane');
-
             if (selectedRainKey && rainDatabase[selectedRainKey]) {
                 rainPane.style.display = 'block';
                 const rainData = rainDatabase[selectedRainKey];
@@ -531,95 +492,21 @@
                 if (charts.cumulative) { charts.cumulative.destroy(); charts.cumulative = null; }
                 return;
             }
-
             cumulativePane.style.display = 'block';
-            
-            let targetLabels = [];
-            if (activeFdvKey && fdvDatabase[activeFdvKey]) {
-                targetLabels = fdvDatabase[activeFdvKey].labels;
-            } else if (rainDatabase[rainKeys[0]]) {
-                targetLabels = rainDatabase[rainKeys[0]].labels;
-            }
-
-            const datasets = [];
-            rainKeys.forEach((gaugeKey, index) => {
+            let targetLabels = (activeFdvKey && fdvDatabase[activeFdvKey]) ? fdvDatabase[activeFdvKey].labels : rainDatabase[rainKeys[0]].labels;
+            const datasets = rainKeys.map((gaugeKey, index) => {
                 const rainData = rainDatabase[gaugeKey];
                 let runningSum = 0;
-                const cumulativeValues = [];
-
-                for (let i = 0; i < targetLabels.length; i++) {
-                    const rawVal = rainData.depths[i];
-                    if (rawVal !== undefined && !isNaN(rawVal)) {
-                        runningSum += rawVal;
-                    }
-                    cumulativeValues.push(runningSum);
-                }
-
-                const color = lineColorsPalette[index % lineColorsPalette.length];
-
-                datasets.push({
-                    label: `${gaugeKey} (${runningSum.toFixed(2)} mm)`,
-                    data: cumulativeValues,
-                    borderColor: color,
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    fill: false
+                const cumulativeValues = targetLabels.map((_, i) => {
+                    const rawVal = rainData.depths[i] || 0;
+                    runningSum += rawVal;
+                    return runningSum;
                 });
+                return { label: `${gaugeKey} (${runningSum.toFixed(2)} mm)`, data: cumulativeValues, borderColor: lineColorsPalette[index % lineColorsPalette.length], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: false };
             });
-
             const ctx = document.getElementById('cumulativeChart').getContext('2d');
             if (charts.cumulative) charts.cumulative.destroy();
-
-            charts.cumulative = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: targetLabels,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: { padding: { bottom: 20 } },
-                    scales: {
-                        x: { 
-                            grid: { display: true, drawOnChartArea: false, drawTicks: true, tickLength: 6, tickColor: '#94a3b8' }, 
-                            ticks: { 
-                                maxTicksLimit: 4, 
-                                color: '#64748b', 
-                                font: { size: 9 },
-                                callback: function(value) {
-                                    let lbl = this.getLabelForValue(value);
-                                    if (lbl && typeof lbl === 'string') {
-                                        let parts = lbl.split(' ');
-                                        if (parts.length >= 3) return parts[0] + ' ' + parts[1] + ' ' + parts[2];
-                                    }
-                                    return lbl;
-                                }
-                            } 
-                        },
-                        y: { 
-                            grid: { color: '#f1f5f9' }, 
-                            ticks: { color: '#334155', font: { size: 10 } }, 
-                            title: { display: true, text: 'Total (mm)', font: { weight: 'bold', size: 10 } }
-                        }
-                    },
-                    plugins: { 
-                        legend: { 
-                            display: true,
-                            position: 'top',
-                            labels: {
-                                boxWidth: 10,
-                                font: { size: 10, weight: '500' },
-                                color: '#334155',
-                                padding: 8
-                            }
-                        }, 
-                        tooltip: { mode: 'index', intersect: false } 
-                    }
-                }
-            });
+            charts.cumulative = new Chart(ctx, { type: 'line', data: { labels: targetLabels, datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: true, drawOnChartArea: false }, ticks: { maxTicksLimit: 4, color: '#64748b', font: { size: 9 } } }, y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 10 } } } }, plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } } } });
         }
 
         function renderScatterCorrelationChart() {
@@ -628,68 +515,18 @@
                 if (charts.scatter) {charts.scatter.destroy(); charts.scatter = null;}
                 return;
             }
-
             scatterPane.style.display = 'block';
             const fdvData = fdvDatabase[activeFdvKey];
-            const cleanDisplayLabel = activeFdvKey.replace(/\.[fF][dD][vV]$/, '');
-            
-            const coordinatePairs = [];
-            for (let i = 0; i < fdvData.depth.length; i++) {
-                coordinatePairs.push({ x: fdvData.velocity[i], y: fdvData.depth[i] });
-            }
-
             const ctx = document.getElementById('scatterChart').getContext('2d');
             if (charts.scatter) charts.scatter.destroy();
-            charts.scatter = new Chart(ctx, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: cleanDisplayLabel,
-                        data: coordinatePairs,
-                        backgroundColor: 'rgba(239, 68, 68, 0.5)',
-                        borderColor: '#ef4444',
-                        pointRadius: 2.5,
-                        pointHoverRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: { padding: { bottom: 15 } },
-                    scales: {
-                        x: {
-                            grid: { display: true, drawOnChartArea: false, drawTicks: true, tickLength: 6, tickColor: '#94a3b8' },
-                            ticks: { color: '#334155', font: { size: 9 } },
-                            title: { display: true, text: 'Velocity (m/s)', font: { weight: 'bold', size: 10 }, padding: { top: 10 } }
-                        },
-                        y: {
-                            grid: { color: '#f1f5f9' },
-                            ticks: { color: '#334155', font: { size: 9 } },
-                            title: { display: true, text: 'Depth (mm)', font: { weight: 'bold', size: 10 } }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) { return `Vel: ${context.parsed.x} m/s | Depth: ${context.parsed.y} mm`; }
-                            }
-                        }
-                    }
-                }
-            });
+            charts.scatter = new Chart(ctx, { type: 'scatter', data: { datasets: [{ label: activeFdvKey, data: fdvData.velocity.map((v, i) => ({ x: v, y: fdvData.depth[i] })), backgroundColor: 'rgba(239, 68, 68, 0.5)', borderColor: '#ef4444', pointRadius: 2.5 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Velocity (m/s)', font: { weight: 'bold', size: 10 } } }, y: { title: { display: true, text: 'Depth (mm)', font: { weight: 'bold', size: 10 } } } }, plugins: { legend: { display: false } } } });
         }
 
         function calculateAndPopulateStats() {
             let activeLabels = [];
-            let hasData = false;
-            let totalRainSum = 0;
-            let calculatedVolumeM3 = 0;
-
-            document.getElementById('tblTimeRange').textContent = "0000-00-00 00:00:00 - 0000-00-00 00:00:00";
+            document.getElementById('tblTimeRange').textContent = "-";
             document.getElementById('tblTotalRain').textContent = "0.000";
             document.getElementById('tblTotalVolume').textContent = "0.000";
-            
             ['Rain', 'Depth', 'Flow', 'Vel'].forEach(p => {
                 document.getElementById(`mMin${p}`).textContent = "0";
                 document.getElementById(`mMax${p}`).textContent = "0";
@@ -699,107 +536,44 @@
             if (activeFdvKey && fdvDatabase[activeFdvKey]) {
                 const fdv = fdvDatabase[activeFdvKey];
                 activeLabels = fdv.labels;
-                hasData = true;
-
                 const flowStats = computeArrayMetrics(fdv.flow);
                 document.getElementById('mMinFlow').textContent = flowStats.min.toFixed(3);
                 document.getElementById('mMaxFlow').textContent = flowStats.max.toFixed(3);
                 document.getElementById('mAvgFlow').textContent = flowStats.avg.toFixed(3);
-
                 const depthStats = computeArrayMetrics(fdv.depth);
                 document.getElementById('mMinDepth').textContent = depthStats.min.toFixed(2);
                 document.getElementById('mMaxDepth').textContent = depthStats.max.toFixed(2);
                 document.getElementById('mAvgDepth').textContent = depthStats.avg.toFixed(2);
-
                 const velStats = computeArrayMetrics(fdv.velocity);
                 document.getElementById('mMinVel').textContent = velStats.min.toFixed(2);
                 document.getElementById('mMaxVel').textContent = velStats.max.toFixed(2);
                 document.getElementById('mAvgVel').textContent = velStats.avg.toFixed(2);
-
-                let timeStepSeconds = (fdv.intervalMinutes || 2) * 60;
-                let integratedLiters = fdv.flow.reduce((acc, curr) => acc + (isNaN(curr) ? 0 : curr), 0) * timeStepSeconds;
-                calculatedVolumeM3 = integratedLiters / 1000;
-                document.getElementById('tblTotalVolume').textContent = calculatedVolumeM3.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3});
+                document.getElementById('tblTotalVolume').textContent = (fdv.flow.reduce((a, b) => a + (isNaN(b) ? 0 : b), 0) * (fdv.intervalMinutes || 2) * 0.06).toFixed(3);
             }
 
             const selectedRainKey = rainSelector.value;
             if (selectedRainKey && rainDatabase[selectedRainKey]) {
                 const rain = rainDatabase[selectedRainKey];
                 if (activeLabels.length === 0) activeLabels = rain.labels;
-                hasData = true;
-
                 const rainStats = computeArrayMetrics(rain.values);
                 document.getElementById('mMinRain').textContent = rainStats.min.toFixed(1);
                 document.getElementById('mMaxRain').textContent = rainStats.max.toFixed(1);
                 document.getElementById('mAvgRain').textContent = rainStats.avg.toFixed(2);
-
-                const depthMetricStats = computeArrayMetrics(rain.depths);
-                document.getElementById('mMinDepth').textContent = depthMetricStats.min.toFixed(2);
-                document.getElementById('mMaxDepth').textContent = depthMetricStats.max.toFixed(2);
-                document.getElementById('mAvgDepth').textContent = depthMetricStats.avg.toFixed(3);
-
-                totalRainSum = rain.totalDepth;
-                document.getElementById('tblTotalRain').textContent = totalRainSum.toFixed(3);
+                document.getElementById('tblTotalRain').textContent = rain.totalDepth.toFixed(3);
             }
-
-            if (hasData && activeLabels.length > 0) {
-                document.getElementById('tblTimeRange').textContent = `${activeLabels[0]} - ${activeLabels[activeLabels.length - 1]}`;
-            }
+            if (activeLabels.length > 0) document.getElementById('tblTimeRange').textContent = `${activeLabels[0]} - ${activeLabels[activeLabels.length - 1]}`;
         }
 
         function computeArrayMetrics(arr) {
-            if (!arr || arr.length === 0) return { min: 0, max: 0, avg: 0 };
-            let min = Infinity, max = -Infinity, sum = 0, count = 0;
-            for (let i = 0; i < arr.length; i++) {
-                const val = arr[i];
-                if (val !== undefined && !isNaN(val)) {
-                    if (val < min) min = val;
-                    if (val > max) max = val;
-                    sum += val;
-                    count++;
-                }
-            }
-            return {
-                min: min === Infinity ? 0 : min, max: max === -Infinity ? 0 : max, avg: count === 0 ? 0 : (sum / count)
-            };
+            const clean = arr.filter(v => !isNaN(v));
+            if (clean.length === 0) return { min: 0, max: 0, avg: 0 };
+            return { min: Math.min(...clean), max: Math.max(...clean), avg: clean.reduce((a, b) => a + b, 0) / clean.length };
         }
 
         function renderPane(canvasId, labels, data, labelTitle, primaryColor, fillBG, key, invertY = false) {
             const ctx = document.getElementById(canvasId).getContext('2d');
             if (charts[key]) charts[key].destroy();
-            charts[key] = new Chart(ctx, {
-                type: invertY ? 'bar' : 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{ data: data, borderColor: primaryColor, backgroundColor: fillBG, borderWidth: invertY ? 0 : 1.5, 
-                    barPercentage: 1.0, categoryPercentage: 1.0, pointRadius: 0, fill: true, tension: 0.02 }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    layout: { padding: { bottom: 20 } },
-                    scales: {
-                        x: { 
-                            grid: { display: true, drawOnChartArea: false, drawTicks: true, tickLength: 6, tickColor: '#94a3b8' }, 
-                            ticks: { 
-                                maxTicksLimit: 10, 
-                                color: '#64748b', 
-                                font: { size: 10 },
-                                callback: function(value) {
-                                    let lbl = this.getLabelForValue(value);
-                                    if (lbl && typeof lbl === 'string') {
-                                        let parts = lbl.split(' ');
-                                        if (parts.length >= 3) return parts[0] + ' ' + parts[1] + ' ' + parts[2];
-                                    }
-                                    return lbl;
-                                }
-                            } 
-                        },
-                        y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 11 } }, title: { display: true, text: labelTitle, 
-                        font: { weight: 'bold', size: 11 } }, reverse: invertY }
-                    },
-                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
-                }
-            });
+            charts[key] = new Chart(ctx, { type: invertY ? 'bar' : 'line', data: { labels: labels, datasets: [{ data: data, borderColor: primaryColor, backgroundColor: fillBG, borderWidth: invertY ? 0 : 1.5, pointRadius: 0, fill: true, tension: 0.02 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: true, drawOnChartArea: false }, ticks: { maxTicksLimit: 10, color: '#64748b', font: { size: 10 } } }, y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 11 } }, title: { display: true, text: labelTitle, font: { weight: 'bold', size: 11 } }, reverse: invertY } }, plugins: { legend: { display: false } } } });
         }
     </script>
 </body>
