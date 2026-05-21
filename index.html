@@ -3,38 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High-Speed Flow Survey Viewer</title>
+    <title>Flow Survey Hydrograph Plotter</title>
+    <!-- Core library parsers and graphing engines -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 30px; color: #333; background-color: #fcfcfc; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .upload-zone { border: 2px dashed #0066cc; padding: 30px; text-align: center; background: #fff; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 25px; color: #333; background-color: #fcfcfc; }
+        .container { max-width: 1300px; margin: 0 auto; }
+        .upload-zone { border: 2px dashed #0066cc; padding: 25px; text-align: center; background: #fff; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         #fileInput { display: none; }
         .btn { background: #0066cc; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; display: inline-block; font-weight: bold; }
         .status { margin-top: 10px; color: #111; font-weight: 600; font-size: 15px; }
         
-        /* High-speed monospace view frame */
-        .output-frame {
-            display: none;
-            background: #ffffff;
-            color: #222;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            overflow: auto;
-            max-height: 650px;
-            white-space: pre;
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-        .meta-info { font-size: 12px; color: #666; margin-bottom: 10px; font-weight: bold; }
+        .dashboard { display: none; margin-top: 20px; }
+        .chart-container { background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); position: relative; height: 550px; }
+        .selector-panel { margin-bottom: 15px; background: #f4f4f4; padding: 12px; border-radius: 5px; border: 1px solid #e0e0e0; }
+        .selector-panel label { font-weight: bold; margin-right: 10px; font-size: 14px; }
+        select { padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; background: white; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Flow Survey Data Viewer <span style="font-size:14px; font-weight:normal; color:#666;">(High-Speed Matrix)</span></h2>
+        <h2>Flow Survey Graphing Interface <span style="font-size:14px; font-weight:normal; color:#666;">(ICM Modeller Style)</span></h2>
         
         <div class="upload-zone" id="dropZone">
             <label for="fileInput" class="btn">Select Flow File</label>
@@ -43,16 +33,28 @@
             <div id="status" class="status">Awaiting data input...</div>
         </div>
 
-        <div id="metaInfo" class="meta-info"></div>
-        <pre class="output-frame" id="outputFrame"></pre>
+        <div class="dashboard" id="dashboard">
+            <div class="selector-panel">
+                <label for="yAxisSelect">Select Parameter to Plot (Y-Axis):</label>
+                <select id="yAxisSelect"></select>
+            </div>
+            <div class="chart-container">
+                <canvas id="hydrographChart"></canvas>
+            </div>
+        </div>
     </div>
 
     <script>
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('dropZone');
         const statusDiv = document.getElementById('status');
-        const outputFrame = document.getElementById('outputFrame');
-        const metaInfo = document.getElementById('metaInfo');
+        const dashboard = document.getElementById('dashboard');
+        const yAxisSelect = document.getElementById('yAxisSelect');
+        
+        let chartInstance = null;
+        let globalHeaders = [];
+        let timeLabels = [];
+        let numericalChannels = {};
 
         fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#0044aa'; });
@@ -62,11 +64,12 @@
             if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
         });
 
+        yAxisSelect.addEventListener('change', (e) => updateChart(e.target.value));
+
         function handleFile(file) {
             if (!file) return;
-            statusDiv.textContent = `Streaming file arrays into viewer matrix...`;
-            outputFrame.style.display = 'none';
-            metaInfo.textContent = `Processing: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            statusDiv.textContent = `Streaming file arrays into memory...`;
+            dashboard.style.display = 'none';
 
             const extension = file.name.split('.').pop().toLowerCase();
 
@@ -77,54 +80,145 @@
             }
         }
 
-        function parseFlowText(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const lines = text.split(/\r?\n/);
-                let cleanedOutput = [];
-                let trackingData = false;
-
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-
-                    // Automatically skip system blocks or empty setups until actual headers appear
-                    // (Matches common flow logs starting with Date, Time, Log, or Site identifiers)
-                    if (!trackingData && (line.toLowerCase().includes('date') || line.toLowerCase().includes('time') || line.match(/^[0-9]/))) {
-                        trackingData = true;
-                    }
-
-                    if (trackingData) {
-                        // Clean up quotes and unify gaps into neat tabs for uniform columns
-                        let formattedLine = line.replace(/['"]/g, '').replace(/\s+/g, '\t');
-                        cleanedOutput.push(formattedLine);
-                    }
-                }
-
-                outputFrame.textContent = cleanedOutput.join('\n');
-                outputFrame.style.display = 'block';
-                statusDiv.textContent = `Loaded successfully!`;
-                metaInfo.textContent += ` | Total Rows Rendered: ${cleanedOutput.length.toLocaleString()}`;
-            };
-            reader.readAsText(file);
-        }
-
         function parseExcel(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                
-                // Convert Excel cells quickly to tabular layout using tab delimiters
-                const textMatrix = XLSX.utils.sheet_to_txt(worksheet);
-                
-                outputFrame.textContent = textMatrix;
-                outputFrame.style.display = 'block';
-                statusDiv.textContent = `Excel sheets parsed successfully!`;
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                processDataset(jsonData);
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        function parseFlowText(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const lines = e.target.result.split(/\r?\n/);
+                const matrix = [];
+                let tracking = false;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    if (!tracking && (line.toLowerCase().includes('date') || line.toLowerCase().includes('time') || line.match(/^[0-9]/))) {
+                        tracking = true;
+                    }
+                    if (tracking) {
+                        let row = line.includes(',') ? line.split(',') : (line.includes('\t') ? line.split('\t') : line.split(/\s+/));
+                        matrix.push(row.map(cell => cell.replace(/['"]/g, '').trim()));
+                    }
+                }
+                processDataset(matrix);
+            };
+            reader.readAsText(file);
+        }
+
+        function processDataset(matrix) {
+            if (!matrix || matrix.length < 2) {
+                statusDiv.textContent = "Error parsing file framework.";
+                return;
+            }
+
+            globalHeaders = matrix[0];
+            timeLabels = [];
+            numericalChannels = {};
+
+            // Initialize storage maps for each track heading
+            globalHeaders.forEach((header, index) => {
+                numericalChannels[index] = [];
+            });
+
+            // Extract values line by line
+            for (let i = 1; i < matrix.length; i++) {
+                const row = matrix[i];
+                if (!row || row.length < globalHeaders.length) continue;
+
+                // Isolate the timestamp reference from column index 0 or index 1
+                const timestamp = row[0] + (row[1] && isNaN(row[1]) ? ' ' + row[1] : '');
+                timeLabels.push(timestamp);
+
+                for (let j = 0; j < globalHeaders.length; j++) {
+                    let val = parseFloat(row[j]);
+                    numericalChannels[j].push(isNaN(val) ? 0 : val);
+                }
+            }
+
+            // Populate selection dropdown with numerical data channels
+            yAxisSelect.innerHTML = '';
+            let defaultIndex = -1;
+            
+            globalHeaders.forEach((header, index) => {
+                // Skip the first time stamp reference tags from y-axis mapping options
+                if (header.toLowerCase().includes('date') || header.toLowerCase().includes('time')) return;
+                
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = header;
+                yAxisSelect.appendChild(opt);
+                
+                if (defaultIndex === -1) defaultIndex = index;
+            });
+
+            statusDiv.textContent = `Data parsed! Hydrograph generated below.`;
+            dashboard.style.display = 'block';
+            
+            // Automatically plot the first discovered numeric attribute array track
+            if (defaultIndex !== -1) {
+                yAxisSelect.value = defaultIndex;
+                updateChart(defaultIndex);
+            }
+        }
+
+        function updateChart(channelIndex) {
+            const ctx = document.getElementById('hydrographChart').getContext('2d');
+            const labelText = globalHeaders[channelIndex];
+            const datasetValues = numericalChannels[channelIndex];
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            // Draw line configurations matching hydraulic analysis styles
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: labelText,
+                        data: datasetValues,
+                        borderColor: '#0066cc',
+                        backgroundColor: 'rgba(0, 102, 204, 0.05)',
+                        borderWidth: 2,
+                        pointRadius: 0, // Performance optimized for large datasets
+                        pointHoverRadius: 4,
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 12, color: '#666' },
+                            title: { display: true, text: 'Timeline Tracking Sequence', color: '#333', font: { weight: 'bold' } }
+                        },
+                        y: {
+                            grid: { color: '#eaeaea' },
+                            ticks: { color: '#666' },
+                            title: { display: true, text: labelText, color: '#333', font: { weight: 'bold' } }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
         }
     </script>
 </body>
