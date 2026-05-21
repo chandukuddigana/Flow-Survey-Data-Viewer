@@ -54,13 +54,13 @@
         /* Specific scaling styles for Side-Deck Panels */
         .graph-pane.legend-pane { border-top: 4px solid #f59e0b; height: auto; margin-bottom: 0; }
         .graph-pane.cumulative-pane { border-top: 4px solid #3b82f6; height: 210px; margin-bottom: 0; }
-        .graph-pane.scatter-pane { border-top: 4px solid #10b981; height: 210px; margin-bottom: 0; }
+        .graph-pane.scatter-pane { border-top: 4px solid #ef4444; height: 210px; margin-bottom: 0; }
         
         h3 { margin: 0 0 8px 0; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
         .rain-pane h3 { color: #1e3a8a; }
         .legend-pane h3 { color: #d97706; }
         .cumulative-pane h3 { color: #2563eb; }
-        .scatter-pane h3 { color: #059669; }
+        .scatter-pane h3 { color: #b91c1c; }
         .status-msg { font-size: 12px; color: #64748b; font-weight: 500; }
     </style>
 </head>
@@ -141,7 +141,7 @@
                     </div>
 
                     <div class="graph-pane scatter-pane" id="scatterPane" style="display: none;">
-                        <h3>Depth vs Velocity Correlation</h3>
+                        <h3>Velocity vs Depth Correlation</h3>
                         <canvas id="scatterChart"></canvas>
                     </div>
                     
@@ -530,12 +530,12 @@
             scatterPane.style.display = 'block';
             const fdvData = fdvDatabase[activeFdvKey];
             
-            // Re-map parallel arrays into coordinate sets: { x: Depth, y: Velocity }
+            // Map arrays: x is now Velocity (M/S), y is now Depth (MM)
             const coordinatePairs = [];
             for (let i = 0; i < fdvData.depth.length; i++) {
                 coordinatePairs.push({
-                    x: fdvData.depth[i],
-                    y: fdvData.velocity[i]
+                    x: fdvData.velocity[i],
+                    y: fdvData.depth[i]
                 });
             }
 
@@ -548,8 +548,8 @@
                     datasets: [{
                         label: activeFdvKey,
                         data: coordinatePairs,
-                        backgroundColor: 'rgba(16, 185, 129, 0.5)',
-                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                        borderColor: '#ef4444',
                         pointRadius: 2.5,
                         pointHoverRadius: 5
                     }]
@@ -561,12 +561,12 @@
                         x: {
                             grid: { color: '#f1f5f9' },
                             ticks: { color: '#334155', font: { size: 9 } },
-                            title: { display: true, text: 'Depth (MM)', font: { weight: 'bold', size: 10 } }
+                            title: { display: true, text: 'Velocity (M/S)', font: { weight: 'bold', size: 10 } }
                         },
                         y: {
                             grid: { color: '#f1f5f9' },
                             ticks: { color: '#334155', font: { size: 9 } },
-                            title: { display: true, text: 'Velocity (M/S)', font: { weight: 'bold', size: 10 } }
+                            title: { display: true, text: 'Depth (MM)', font: { weight: 'bold', size: 10 } }
                         }
                     },
                     plugins: {
@@ -574,7 +574,7 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return `Depth: ${context.parsed.x} mm | Vel: ${context.parsed.y} m/s`;
+                                    return `Vel: ${context.parsed.x} m/s | Depth: ${context.parsed.y} mm`;
                                 }
                             }
                         }
