@@ -120,12 +120,12 @@
                     
                     <div id="hydraulicChartsWrapper" style="display: none;">
                         <div class="graph-pane">
-                            <h3>Calculated Flow Profile (L/S)</h3>
-                            <canvas id="flowChart"></canvas>
-                        </div>
-                        <div class="graph-pane">
                             <h3>Network Depth Profile (MM)</h3>
                             <canvas id="depthChart"></canvas>
+                        </div>
+                        <div class="graph-pane">
+                            <h3>Calculated Flow Profile (L/S)</h3>
+                            <canvas id="flowChart"></canvas>
                         </div>
                         <div class="graph-pane">
                             <h3>Mean Velocity Profile (M/S)</h3>
@@ -374,9 +374,15 @@
             return new Date(yy, mm, dd, hh, min);
         }
 
+        /* CUSTOM ENGINE FOR X-AXIS LABELS WITHOUT YEAR STAMPS */
         function getStepLabel(baseDate, step, interval) {
             let current = new Date(baseDate.getTime() + (step * interval * 60 * 1000));
-            return current.toISOString().split('T')[0] + ' ' + current.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            let day = current.getDate().toString().padStart(2, '0');
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            let month = months[current.getMonth()];
+            let hh = current.getHours().toString().padStart(2, '0');
+            let mm = current.getMinutes().toString().padStart(2, '0');
+            return `${day} ${month} ${hh}:${mm}`;
         }
 
         function rebuildInventoriesUI() {
