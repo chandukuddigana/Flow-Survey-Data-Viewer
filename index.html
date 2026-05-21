@@ -34,9 +34,10 @@
         
         /* Compact Multi-Line Gauge Control Panel Box */
         .gauge-control-panel { display: flex; flex-direction: column; gap: 6px; background: #f1f5f9; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; }
-        .gauge-control-panel span { font-size: 12px; font-weight: bold; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; }
-        .rain-selector { padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 13px; font-weight: 600; color: #0f172a; outline: none; cursor: pointer; width: 100%; box-sizing: border-box; }
-        .rain-selector:hover { border-color: #94a3b8; }
+        .gauge-control-panel span { font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+        .dropdown-wrapper { display: flex; flex-direction: column; gap: 4px; }
+        .rain-selector, .monitor-selector { padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 13px; font-weight: 600; color: #0f172a; outline: none; cursor: pointer; width: 100%; box-sizing: border-box; }
+        .rain-selector:hover, .monitor-selector:hover { border-color: #94a3b8; }
 
         /* LAYOUT GRID SYSTEM */
         .workspace-view { display: none; padding: 25px; }
@@ -46,17 +47,13 @@
         .auxiliary-section-column { width: 340px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; }
 
         .graph-pane { background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); height: 195px; position: relative; }
-        
-        /* Removed border-top override to keep it uniform with other panes */
         .graph-pane.rain-pane { height: 145px; display: none; }
         
-        .graph-pane.legend-pane { border-top: 4px solid #f59e0b; height: auto; margin-bottom: 0; }
         .graph-pane.cumulative-pane { border-top: 4px solid #3b82f6; height: 220px; margin-bottom: 0; }
         .graph-pane.scatter-pane { border-top: 4px solid #ef4444; height: 230px; margin-bottom: 0; }
         
         h3 { margin: 0 0 8px 0; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
         .rain-pane h3 { color: #1e3a8a; }
-        .legend-pane h3 { color: #d97706; }
         .cumulative-pane h3 { color: #2563eb; }
         .scatter-pane h3 { color: #b91c1c; }
 
@@ -128,15 +125,18 @@
                 <div class="auxiliary-section-column">
                     
                     <div class="gauge-control-panel" id="controlBar" style="display: none;">
-                        <span>Select Rain gauge:</span>
-                        <select class="rain-selector" id="rainSelector">
-                            <option value="">-- No Rainfall Profile Selected --</option>
-                        </select>
-                    </div>
-
-                    <div class="graph-pane legend-pane" id="legendPane" style="display: none;">
-                        <h3>Cumulative Rainfall data</h3>
-                        <div id="customLegendContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
+                        <div class="dropdown-wrapper">
+                            <span>Select Monitor Station:</span>
+                            <select class="monitor-selector" id="monitorSelector">
+                                <option value="">-- No Monitor Station Selected --</option>
+                            </select>
+                        </div>
+                        <div class="dropdown-wrapper" style="margin-top: 4px;">
+                            <span>Select Rain gauge:</span>
+                            <select class="rain-selector" id="rainSelector">
+                                <option value="">-- No Rainfall Profile Selected --</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="graph-pane cumulative-pane" id="cumulativePane" style="display: none;">
@@ -219,9 +219,8 @@
         const hydraulicChartsWrapper = document.getElementById('hydraulicChartsWrapper');
         const cumulativePane = document.getElementById('cumulativePane');
         const scatterPane = document.getElementById('scatterPane');
-        const legendPane = document.getElementById('legendPane');
-        const customLegendContainer = document.getElementById('customLegendContainer');
         const controlBar = document.getElementById('controlBar');
+        const monitorSelector = document.getElementById('monitorSelector');
         const rainSelector = document.getElementById('rainSelector');
         
         let fdvDatabase = {};
@@ -280,6 +279,7 @@
                         }
 
                         rebuildInventoriesUI();
+                        populateMonitorDropdown();
                         populateRainDropdown();
                         
                         if (Object.keys(fdvDatabase).length > 0 || Object.keys(rainDatabase).length > 0) {
@@ -423,6 +423,22 @@
             }
         }
 
+        function populateMonitorDropdown() {
+            monitorSelector.innerHTML = '<option value="">-- No Monitor Station Selected --</option>';
+            const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+            
+            sortedFdvKeys.forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = key.replace(/\.[fF][dD][vV]$/, '');
+                monitorSelector.appendChild(opt);
+            });
+
+            if (activeFdvKey) {
+                monitorSelector.value = activeFdvKey;
+            }
+        }
+
         function populateRainDropdown() {
             const previousSelection = rainSelector.value;
             rainSelector.innerHTML = '<option value="">-- No Rainfall Profile Selected --</option>';
@@ -440,6 +456,12 @@
             }
         }
 
+        monitorSelector.addEventListener('change', (e) => {
+            if (e.target.value) {
+                switchToFilePage(e.target.value);
+            }
+        });
+
         rainSelector.addEventListener('change', () => {
             updateRainfallChartTrack();
             renderCumulativeComparisonChart();
@@ -456,6 +478,10 @@
                 if (item.textContent === cleanDisplayLabel) item.classList.add('active');
                 else item.classList.remove('active');
             });
+
+            if (monitorSelector.value !== fdvKey) {
+                monitorSelector.value = fdvKey;
+            }
 
             hydraulicChartsWrapper.style.display = 'block';
 
@@ -490,14 +516,11 @@
             
             if (rainKeys.length === 0) {
                 cumulativePane.style.display = 'none';
-                legendPane.style.display = 'none';
                 if (charts.cumulative) { charts.cumulative.destroy(); charts.cumulative = null; }
                 return;
             }
 
             cumulativePane.style.display = 'block';
-            legendPane.style.display = 'block';
-            customLegendContainer.innerHTML = '';
             
             let targetLabels = [];
             if (activeFdvKey && fdvDatabase[activeFdvKey]) {
@@ -524,7 +547,7 @@
                 const color = lineColorsPalette[index % lineColorsPalette.length];
 
                 datasets.push({
-                    label: gaugeKey,
+                    label: `${gaugeKey} (${runningSum.toFixed(2)} mm)`,
                     data: cumulativeValues,
                     borderColor: color,
                     backgroundColor: 'transparent',
@@ -533,40 +556,6 @@
                     tension: 0.1,
                     fill: false
                 });
-
-                const legendItem = document.createElement('div');
-                legendItem.style.display = 'flex';
-                legendItem.style.alignItems = 'center';
-                legendItem.style.justifyContent = 'space-between';
-                legendItem.style.fontSize = '12px';
-                legendItem.style.fontWeight = '500';
-                legendItem.style.color = '#334155';
-                
-                const leftPart = document.createElement('div');
-                leftPart.style.display = 'flex';
-                leftPart.style.alignItems = 'center';
-                leftPart.style.gap = '8px';
-                
-                const colorDot = document.createElement('div');
-                colorDot.style.width = '12px';
-                colorDot.style.height = '12px';
-                colorDot.style.borderRadius = '3px';
-                colorDot.style.backgroundColor = color;
-                
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = gaugeKey;
-                
-                leftPart.appendChild(colorDot);
-                leftPart.appendChild(nameSpan);
-                
-                const totalSpan = document.createElement('span');
-                totalSpan.style.fontWeight = '700';
-                totalSpan.style.color = '#0f172a';
-                totalSpan.textContent = `${runningSum.toFixed(2)} mm`;
-                
-                legendItem.appendChild(leftPart);
-                legendItem.appendChild(totalSpan);
-                customLegendContainer.appendChild(legendItem);
             });
 
             const ctx = document.getElementById('cumulativeChart').getContext('2d');
@@ -605,7 +594,19 @@
                             title: { display: true, text: 'Total (mm)', font: { weight: 'bold', size: 10 } }
                         }
                     },
-                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
+                    plugins: { 
+                        legend: { 
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                font: { size: 10, weight: '500' },
+                                color: '#334155',
+                                padding: 8
+                            }
+                        }, 
+                        tooltip: { mode: 'index', intersect: false } 
+                    }
                 }
             });
         }
