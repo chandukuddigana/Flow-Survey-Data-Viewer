@@ -80,4 +80,285 @@
             <span>Assign Rainfall Profile To Timeline:</span>
             <select class="rain-selector" id="rainSelector">
                 <option value="">-- No Rainfall Profile Selected --</option>
-            </
+            </select>
+        </div>
+
+        <div class="workspace-view" id="workspaceView">
+            <div class="graph-pane rain-pane" id="rainPane">
+                <h3>Precipitation Inflow Hyetograph (MM)</h3>
+                <canvas id="rainChart"></canvas>
+            </div>
+            
+            <div class="graph-pane">
+                <h3>Calculated Flow Profile (L/S)</h3>
+                <canvas id="flowChart"></canvas>
+            </div>
+            <div class="graph-pane">
+                <h3>Network Depth Profile (MM)</h3>
+                <canvas id="depthChart"></canvas>
+            </div>
+            <div class="graph-pane">
+                <h3>Mean Velocity Profile (M/S)</h3>
+                <canvas id="velocityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const pickerBtn = document.getElementById('pickerBtn');
+        const dropZone = document.getElementById('dropZone');
+        const statusDiv = document.getElementById('status');
+        const fdvListContainer = document.getElementById('fdvListContainer');
+        const rainInventoryContainer = document.getElementById('rainInventoryContainer');
+        const workspaceView = document.getElementById('workspaceView');
+        const controlBar = document.getElementById('controlBar');
+        const rainSelector = document.getElementById('rainSelector');
+        const activeViewTitle = document.getElementById('activeViewTitle');
+        const globalStatus = document.getElementById('globalStatus');
+        
+        // Segregated local database caches
+        let fdvDatabase = {};
+        let rainDatabase = {};
+        let activeFdvKey = null;
+        let charts = { rain: null, flow: null, depth: null, velocity: null };
+
+        // Interrupt browser drop page take-overs securely
+        const preventDefaults = (e) => { e.preventDefault(); e.stopPropagation(); };
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            window.addEventListener(eventName, preventDefaults, false);
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        pickerBtn.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+        dropZone.addEventListener('click', () => { fileInput.click(); });
+
+        fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); });
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            if (dt.files && dt.files.length > 0) handleFiles(dt.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            statusDiv.textContent = `Sorting files into independent data pools...`;
+            
+            let filesProcessed = 0;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileNameUpper = file.name.toUpperCase();
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const contentText = e.target.result;
+                    
+                    // Categorize based on file content signature
+                    if (contentText.includes('FIELD: 1,RAIN') || fileNameUpper.endsWith('.R')) {
+                        const parsedRain = processRainFile(contentText);
+                        if (parsedRain) rainDatabase[file.name] = parsedRain;
+                    } else {
+                        const parsedFdv = processFdvFile(contentText);
+                        if (parsedFdv) {
+                            fdvDatabase[file.name] = parsedFdv;
+                            if (!activeFdvKey) activeFdvKey = file.name;
+                        }
+                    }
+                    
+                    filesProcessed++;
+                    if (filesProcessed === files.length) {
+                        rebuildInventoriesUI();
+                        populateRainDropdown();
+                        if (activeFdvKey) switchToFilePage(activeFdvKey);
+                        statusDiv.textContent = `Successfully updated library: ${Object.keys(fdvDatabase).length} FDVs and ${Object.keys(rainDatabase).length} Rain files ready.`;
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function processFdvFile(text) {
+            const lines = text.split(/\r?\n/);
+            let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                if (line.startsWith('*CSTART')) {
+                    let paramLine2 = "";
+                    for(let k=1; k<5; k++) {
+                        if(lines[i+k] && lines[i+k].trim().match(/^\d{10}/)) { paramLine2 = lines[i+k].trim(); break; }
+                    }
+                    let match = paramLine2.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    if (match) { startTimeStr = match[1]; intervalMinutes = parseInt(match[2]); }
+                }
+                if (line.startsWith('*CEND')) { inData = true; continue; }
+                if (inData) {
+                    line.split(/\s+/).forEach(t => { let v = parseFloat(t); if (!isNaN(v)) rawValues.push(v); });
+                }
+            }
+            if (rawValues.length < 3) return null;
+            let baseDate = parseYYMMDDHHMM(startTimeStr);
+            const labels = [], flow = [], depth = [], velocity = [];
+            let step = 0;
+            for (let j = 0; j < rawValues.length; j += 3) {
+                if (j + 2 >= rawValues.length) break;
+                labels.push(getStepLabel(baseDate, step, intervalMinutes));
+                flow.push(rawValues[j]); depth.push(rawValues[j+1]); velocity.push(rawValues[j+2]);
+                step++;
+            }
+            return { labels, flow, depth, velocity };
+        }
+
+        function processRainFile(text) {
+            const lines = text.split(/\r?\n/);
+            let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                if (line.startsWith('*CSTART')) {
+                    let paramLine2 = "";
+                    for(let k=1; k<5; k++) {
+                        if(lines[i+k] && lines[i+k].trim().match(/^\d{10}/)) { paramLine2 = lines[i+k].trim(); break; }
+                    }
+                    let match = paramLine2.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    if (match) { startTimeStr = match[1]; intervalMinutes = parseInt(match[2]); }
+                }
+                if (line.startsWith('*CEND')) { inData = true; continue; }
+                if (inData) {
+                    line.split(/\s+/).forEach(t => { let v = parseFloat(t); if (!isNaN(v)) rawValues.push(v); });
+                }
+            }
+            if (rawValues.length === 0) return null;
+            let baseDate = parseYYMMDDHHMM(startTimeStr);
+            const labels = [], rainValues = [];
+            rawValues.forEach((val, step) => {
+                labels.push(getStepLabel(baseDate, step, intervalMinutes));
+                rainValues.push(val);
+            });
+            return { labels, values: rainValues };
+        }
+
+        function parseYYMMDDHHMM(str) {
+            if (!str || str.length !== 10) return new Date();
+            let yy = parseInt("20" + str.substring(0,2)), mm = parseInt(str.substring(2,4)) - 1,
+                dd = parseInt(str.substring(4,6)), hh = parseInt(str.substring(6,8)), min = parseInt(str.substring(8,10));
+            return new Date(yy, mm, dd, hh, min);
+        }
+
+        function getStepLabel(baseDate, step, interval) {
+            let current = new Date(baseDate.getTime() + (step * interval * 60 * 1000));
+            return current.toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'}) + ' ' + current.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+        }
+
+        function rebuildInventoriesUI() {
+            // Render FDV navigation buttons list
+            fdvListContainer.innerHTML = '';
+            const fdvKeys = Object.keys(fdvDatabase);
+            if (fdvKeys.length === 0) {
+                fdvListContainer.innerHTML = '<div style="color: #64748b; font-size: 12px; padding: 5px; font-style: italic;">No monitors loaded</div>';
+            } else {
+                fdvKeys.forEach(key => {
+                    const div = document.createElement('div');
+                    div.className = `station-item ${key === activeFdvKey ? 'active' : ''}`;
+                    div.textContent = key;
+                    div.onclick = (e) => { e.stopPropagation(); switchToFilePage(key); };
+                    fdvListContainer.appendChild(div);
+                });
+            }
+
+            // Render Rainfall file inventory status block
+            rainInventoryContainer.innerHTML = '';
+            const rainKeys = Object.keys(rainDatabase);
+            if (rainKeys.length === 0) {
+                rainInventoryContainer.innerHTML = '<div style="color: #64748b; font-size: 12px; padding: 5px; font-style: italic;">No gauges loaded</div>';
+            } else {
+                rainKeys.forEach(key => {
+                    const div = document.createElement('div');
+                    div.className = 'rain-inventory-item';
+                    div.textContent = `☔ ${key}`;
+                    rainInventoryContainer.appendChild(div);
+                });
+            }
+        }
+
+        function populateRainDropdown() {
+            // Save selection index state context
+            const previousSelection = rainSelector.value;
+            
+            rainSelector.innerHTML = '<option value="">-- No Rainfall Profile Selected --</option>';
+            Object.keys(rainDatabase).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = key;
+                rainSelector.appendChild(opt);
+            });
+            
+            // Re-apply selection index if it exists
+            if (rainDatabase[previousSelection]) {
+                rainSelector.value = previousSelection;
+            }
+        }
+
+        // Dropdown interactive connection layer configuration event rule
+        rainSelector.addEventListener('change', () => {
+            updateRainfallChartTrack();
+        });
+
+        function switchToFilePage(fdvKey) {
+            if (!fdvKey || !fdvDatabase[fdvKey]) return;
+            activeFdvKey = fdvKey;
+            
+            document.querySelectorAll('.station-item').forEach(item => {
+                if (item.textContent === fdvKey) item.classList.add('active');
+                else item.classList.remove('active');
+            });
+
+            activeViewTitle.textContent = `Profile Viewer: ${fdvKey}`;
+            globalStatus.textContent = `Hydraulics Channels Stream Synchronized.`;
+            controlBar.style.display = 'flex';
+            workspaceView.style.display = 'block';
+
+            const fdvData = fdvDatabase[fdvKey];
+            renderPane('flowChart', fdvData.labels, fdvData.flow, 'Flow (L/S)', '#a855f7', 'rgba(168, 85, 247, 0.03)', 'flow');
+            renderPane('depthChart', fdvData.labels, fdvData.depth, 'Depth (MM)', '#3b82f6', 'rgba(59, 130, 246, 0.03)', 'depth');
+            renderPane('velocityChart', fdvData.labels, fdvData.velocity, 'Velocity (M/S)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'velocity');
+            
+            // Dynamic check update path
+            updateRainfallChartTrack();
+        }
+
+        function updateRainfallChartTrack() {
+            const selectedRainKey = rainSelector.value;
+            const rainPane = document.getElementById('rainPane');
+
+            if (selectedRainKey && rainDatabase[selectedRainKey]) {
+                rainPane.style.display = 'block';
+                const rainData = rainDatabase[selectedRainKey];
+                renderPane('rainChart', rainData.labels, rainData.values, 'Rainfall (MM)', '#22c55e', 'rgba(34, 197, 94, 0.15)', 'rain', true);
+            } else {
+                rainPane.style.display = 'none';
+                if (charts.rain) { charts.rain.destroy(); charts.rain = null; }
+            }
+        }
+
+        function renderPane(canvasId, labels, data, labelTitle, primaryColor, fillBG, key, invertY = false) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[key]) charts[key].destroy();
+            charts[key] = new Chart(ctx, {
+                type: invertY ? 'bar' : 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, borderColor: primaryColor, backgroundColor: fillBG, borderWidth: invertY ? 0 : 1.5, barPercentage: 1.0, categoryPercentage: 1.0, pointRadius: 0, fill: true, tension: 0.02 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 12, color: '#64748b', font: { size: 10 } } },
+                        y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 11 } }, title: { display: true, text: labelTitle, font: { weight: 'bold', size: 11 } }, reverse: invertY }
+                    },
+                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
