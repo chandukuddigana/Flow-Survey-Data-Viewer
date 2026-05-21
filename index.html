@@ -25,7 +25,7 @@
         /* Main Workspace Content Arena */
         .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100%; }
         .top-banner { background: #fff; padding: 15px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-        .top-banner h1 { margin: 0; font-size: 18px; color: #0f172a; }
+        .top-banner h1 { margin: 0; font-size: 18px; color: #0f172a; display: none; } /* Hidden the top profile title */
         
         /* Clickable Drop Zone area */
         .upload-zone { border: 2px dashed #38bdf8; padding: 35px 25px; text-align: center; background: #fff; border-radius: 8px; margin: 25px; cursor: pointer; transition: background 0.15s ease-in-out; flex-shrink: 0; }
@@ -91,7 +91,7 @@
 
     <div class="main-content">
         <div class="top-banner">
-            <h1 id="activeViewTitle">Awaiting Project Data</h1>
+            <h1 id="activeViewTitle" style="display:none">Awaiting Project Data</h1>
             <div class="status-msg" id="globalStatus">Upload Files Packets Below</div>
         </div>
         
@@ -103,7 +103,7 @@
         </div>
 
         <div class="control-bar" id="controlBar" style="display: none;">
-            <span>Assign Rainfall Profile To Timeline:</span>
+            <span>Select Rain gauge:</span>
             <select class="rain-selector" id="rainSelector">
                 <option value="">-- No Rainfall Profile Selected --</option>
             </select>
@@ -234,7 +234,6 @@
         
         const lineColorsPalette = ['#1e3a8a', '#2563eb', '#06b6d4', '#f59e0b', '#ec4899', '#8b5cf6', '#ef4444'];
 
-        // RIGOROUS GLOBAL EVENT TRAPPING FOR WINDOW - Prevents browser opening files in new tabs
         const preventDefaults = (e) => { e.preventDefault(); e.stopPropagation(); };
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             window.addEventListener(eventName, preventDefaults, false);
@@ -295,7 +294,6 @@
                         if (activeFdvKey) {
                             switchToFilePage(activeFdvKey);
                         } else {
-                            activeViewTitle.textContent = `Rainfall Analysis Deck`;
                             globalStatus.textContent = `Precipitation pools loaded.`;
                             hydraulicChartsWrapper.style.display = 'none';
                             scatterPane.style.display = 'none';
@@ -341,7 +339,6 @@
             return { labels, flow, depth, velocity, intervalMinutes };
         }
 
-        // YOUR RIGOROUS CONVERSION PATTERN - Fixed calculation tracking logic here
         function processRainFile(text, fileName) {
             const lines = text.split(/\r?\n/);
             let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
@@ -376,8 +373,8 @@
 
             return { 
                 labels, 
-                values: rawIntensity, // Intensity array for mm/hr timeline tracking
-                depths: depths,       // Transformed physical step-depths (mm)
+                values: rawIntensity, 
+                depths: depths,       
                 totalDepth: totalDepth, 
                 intervalMinutes 
             };
@@ -408,7 +405,6 @@
             } else {
                 fdvKeys.forEach(key => {
                     const div = document.createElement('div');
-                    // Strip extension
                     const cleanDisplayLabel = key.replace(/\.[fF][dD][vV]$/, '');
                     div.className = `station-item ${key === activeFdvKey ? 'active' : ''}`;
                     div.textContent = cleanDisplayLabel;
@@ -465,7 +461,6 @@
                 else item.classList.remove('active');
             });
 
-            activeViewTitle.textContent = `Profile Viewer: ${cleanDisplayLabel}`;
             globalStatus.textContent = `Hydraulics Channels Stream Synchronized.`;
             hydraulicChartsWrapper.style.display = 'block';
 
@@ -524,7 +519,7 @@
                 const cumulativeValues = [];
 
                 for (let i = 0; i < targetLabels.length; i++) {
-                    const rawVal = rainData.depths[i]; // Evaluated using physical depth mapping transformation
+                    const rawVal = rainData.depths[i];
                     if (rawVal !== undefined && !isNaN(rawVal)) {
                         runningSum += rawVal;
                     }
@@ -727,13 +722,11 @@
                 if (activeLabels.length === 0) activeLabels = rain.labels;
                 hasData = true;
 
-                // Intensity calculation column limits (mm/hr)
                 const rainStats = computeArrayMetrics(rain.values);
                 document.getElementById('mMinRain').textContent = rainStats.min.toFixed(1);
                 document.getElementById('mMaxRain').textContent = rainStats.max.toFixed(1);
                 document.getElementById('mAvgRain').textContent = rainStats.avg.toFixed(2);
 
-                // Physical integrated Depth Column mapping metrics total limits (mm)
                 const depthMetricStats = computeArrayMetrics(rain.depths);
                 document.getElementById('mMinDepth').textContent = depthMetricStats.min.toFixed(2);
                 document.getElementById('mMaxDepth').textContent = depthMetricStats.max.toFixed(2);
