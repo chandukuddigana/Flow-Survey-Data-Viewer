@@ -45,7 +45,6 @@
         .graph-section-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .auxiliary-section-column { width: 340px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; }
 
-        /* Expanded heights slightly to avoid clipping labels on borders */
         .graph-pane { background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); height: 195px; position: relative; }
         .graph-pane.rain-pane { border-top: 4px solid #1e3a8a; background: #eff6ff; height: 145px; display: none; }
         
@@ -575,12 +574,17 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     layout: {
-                        // Added padding to prevent the x-axis dates from hitting the box border
                         padding: { bottom: 20 }
                     },
                     scales: {
                         x: { 
-                            grid: { display: false }, 
+                            grid: { 
+                                display: true,
+                                drawOnChartArea: false,
+                                drawTicks: true,
+                                tickLength: 6,
+                                tickColor: '#94a3b8'
+                            }, 
                             ticks: { 
                                 maxTicksLimit: 5, 
                                 color: '#64748b', 
@@ -646,18 +650,22 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     layout: {
-                        // Creates layout buffer at bottom to clear the title
                         padding: { bottom: 15 }
                     },
                     scales: {
                         x: {
-                            grid: { color: '#f1f5f9' },
+                            grid: { 
+                                display: true,
+                                drawOnChartArea: false,
+                                drawTicks: true,
+                                tickLength: 6,
+                                tickColor: '#94a3b8'
+                            },
                             ticks: { color: '#334155', font: { size: 9 } },
                             title: { 
                                 display: true, 
                                 text: 'Velocity (M/S)', 
                                 font: { weight: 'bold', size: 10 },
-                                // Pushes title downwards slightly inside the layout padding boundary
                                 padding: { top: 10 } 
                             }
                         },
@@ -774,12 +782,17 @@
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     layout: {
-                        // Added padding to prevent the x-axis dates from hitting the box border
                         padding: { bottom: 20 }
                     },
                     scales: {
                         x: { 
-                            grid: { display: false }, 
+                            grid: { 
+                                display: true,
+                                drawOnChartArea: false,
+                                drawTicks: true,
+                                tickLength: 6,
+                                tickColor: '#94a3b8'
+                            }, 
                             ticks: { 
                                 maxTicksLimit: 12, 
                                 color: '#64748b', 
