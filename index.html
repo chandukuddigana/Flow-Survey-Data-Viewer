@@ -114,21 +114,21 @@
                 
                 <div class="graph-section-column">
                     <div class="graph-pane rain-pane" id="rainPane">
-                        <h3>Precipitation Inflow Hyetograph (MM)</h3>
+                        <h3>Rainfall (mm)</h3>
                         <canvas id="rainChart"></canvas>
                     </div>
                     
                     <div id="hydraulicChartsWrapper" style="display: none;">
                         <div class="graph-pane">
-                            <h3>Network Depth Profile (MM)</h3>
+                            <h3>Depth (mm)</h3>
                             <canvas id="depthChart"></canvas>
                         </div>
                         <div class="graph-pane">
-                            <h3>Calculated Flow Profile (L/S)</h3>
+                            <h3>Flow (lit/sec)</h3>
                             <canvas id="flowChart"></canvas>
                         </div>
                         <div class="graph-pane">
-                            <h3>Mean Velocity Profile (M/S)</h3>
+                            <h3>Velocity (m/s)</h3>
                             <canvas id="velocityChart"></canvas>
                         </div>
                     </div>
@@ -136,7 +136,7 @@
 
                 <div class="auxiliary-section-column">
                     <div class="graph-pane legend-pane" id="legendPane" style="display: none;">
-                        <h3>Rainfall Gauge Inventory & Totals</h3>
+                        <h3>Cummulative Rainfall data</h3>
                         <div id="customLegendContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
                     </div>
 
@@ -263,7 +263,11 @@
                     
                     if (contentText.includes('FIELD: 1,RAIN') || fileNameUpper.endsWith('.R')) {
                         const parsedRain = processRainFile(contentText);
-                        if (parsedRain) rainDatabase[file.name] = parsedRain;
+                        if (parsedRain) {
+                            // Strip .R / .r extension from internal tracking keys
+                            let cleanKey = file.name.replace(/\.[rR]$/, '');
+                            rainDatabase[cleanKey] = parsedRain;
+                        }
                     } else {
                         const parsedFdv = processFdvFile(contentText);
                         if (parsedFdv) {
@@ -299,7 +303,7 @@
                             calculateAndPopulateStats();
                         }
 
-                        statusDiv.textContent = `Successfully updated library: ${Object.keys(fdvDatabase).length} FDVs and ${Object.keys(rainDatabase).length} Rain files ready.`;
+                        statusDiv.textContent = `Successfully updated library: ${Object.keys(fdvDatabase).length} FDVs and ${Object.keys(rainDatabase).length} Rain profiles ready.`;
                     }
                 };
                 reader.readAsText(file);
@@ -374,7 +378,6 @@
             return new Date(yy, mm, dd, hh, min);
         }
 
-        /* CUSTOM ENGINE FOR X-AXIS LABELS WITHOUT YEAR STAMPS */
         function getStepLabel(baseDate, step, interval) {
             let current = new Date(baseDate.getTime() + (step * interval * 60 * 1000));
             let day = current.getDate().toString().padStart(2, '0');
@@ -408,7 +411,7 @@
                 rainKeys.forEach(key => {
                     const div = document.createElement('div');
                     div.className = 'rain-inventory-item';
-                    div.textContent = `☔ ${key}`;
+                    div.textContent = `☔ ${key}`; // Clean key automatically without extensions
                     rainInventoryContainer.appendChild(div);
                 });
             }
@@ -451,9 +454,9 @@
 
             const fdvData = fdvDatabase[fdvKey];
             
-            renderPane('flowChart', fdvData.labels, fdvData.flow, 'Flow (L/S)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'flow');
-            renderPane('depthChart', fdvData.labels, fdvData.depth, 'Depth (MM)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'depth');
-            renderPane('velocityChart', fdvData.labels, fdvData.velocity, 'Velocity (M/S)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'velocity');
+            renderPane('depthChart', fdvData.labels, fdvData.depth, 'Depth (mm)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'depth');
+            renderPane('flowChart', fdvData.labels, fdvData.flow, 'Flow (lit/sec)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'flow');
+            renderPane('velocityChart', fdvData.labels, fdvData.velocity, 'Velocity (m/s)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'velocity');
             
             updateRainfallChartTrack();
             renderCumulativeComparisonChart();
@@ -468,7 +471,7 @@
             if (selectedRainKey && rainDatabase[selectedRainKey]) {
                 rainPane.style.display = 'block';
                 const rainData = rainDatabase[selectedRainKey];
-                renderPane('rainChart', rainData.labels, rainData.values, 'Rainfall (MM)', '#1e3a8a', 'rgba(30, 58, 138, 0.2)', 'rain', true);
+                renderPane('rainChart', rainData.labels, rainData.values, 'Rainfall (mm)', '#1e3a8a', 'rgba(30, 58, 138, 0.2)', 'rain', true);
             } else {
                 rainPane.style.display = 'none';
                 if (charts.rain) { charts.rain.destroy(); charts.rain = null; }
@@ -572,7 +575,22 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: { grid: { display: false }, ticks: { maxTicksLimit: 5, color: '#64748b', font: { size: 9 } } },
+                        x: { 
+                            grid: { display: false }, 
+                            ticks: { 
+                                maxTicksLimit: 5, 
+                                color: '#64748b', 
+                                font: { size: 9 },
+                                callback: function(value) {
+                                    let lbl = this.getLabelForValue(value);
+                                    if (lbl && typeof lbl === 'string') {
+                                        let parts = lbl.split(' ');
+                                        if (parts.length >= 2) return parts[0] + ' ' + parts[1];
+                                    }
+                                    return lbl;
+                                }
+                            } 
+                        },
                         y: { 
                             grid: { color: '#f1f5f9' }, 
                             ticks: { color: '#334155', font: { size: 10 } }, 
@@ -655,7 +673,6 @@
             let totalRainSum = 0;
             let calculatedVolumeM3 = 0;
 
-            // Reset Default Table Placeholders
             document.getElementById('tblTimeRange').textContent = "0000-00-00 00:00:00 - 0000-00-00 00:00:00";
             document.getElementById('tblTotalRain').textContent = "0.000";
             document.getElementById('tblTotalVolume').textContent = "0.000";
@@ -666,7 +683,6 @@
                 document.getElementById(`mAvg${p}`).textContent = "0";
             });
 
-            // 1. Core FDV calculations
             if (activeFdvKey && fdvDatabase[activeFdvKey]) {
                 const fdv = fdvDatabase[activeFdvKey];
                 activeLabels = fdv.labels;
@@ -687,14 +703,12 @@
                 document.getElementById('mMaxVel').textContent = velStats.max.toFixed(2);
                 document.getElementById('mAvgVel').textContent = velStats.avg.toFixed(2);
 
-                // Calculate Cumulative Discharge Volume (m³)
                 let timeStepSeconds = (fdv.intervalMinutes || 2) * 60;
                 let integratedLiters = fdv.flow.reduce((acc, curr) => acc + (isNaN(curr) ? 0 : curr), 0) * timeStepSeconds;
                 calculatedVolumeM3 = integratedLiters / 1000;
                 document.getElementById('tblTotalVolume').textContent = calculatedVolumeM3.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3});
             }
 
-            // 2. Core Rainfall calculations
             const selectedRainKey = rainSelector.value;
             if (selectedRainKey && rainDatabase[selectedRainKey]) {
                 const rain = rainDatabase[selectedRainKey];
@@ -710,7 +724,6 @@
                 document.getElementById('tblTotalRain').textContent = totalRainSum.toFixed(3);
             }
 
-            // 3. Render Top Range Scope Strings
             if (hasData && activeLabels.length > 0) {
                 document.getElementById('tblTimeRange').textContent = `${activeLabels[0]} - ${activeLabels[activeLabels.length - 1]}`;
             }
@@ -747,7 +760,23 @@
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     scales: {
-                        x: { grid: { display: false }, ticks: { maxTicksLimit: 12, color: '#64748b', font: { size: 10 } } },
+                        x: { 
+                            grid: { display: false }, 
+                            ticks: { 
+                                maxTicksLimit: 12, 
+                                color: '#64748b', 
+                                font: { size: 10 },
+                                // Ticks Callback turns "21 May 19:30" into "21 May" on the axis line layout
+                                callback: function(value) {
+                                    let lbl = this.getLabelForValue(value);
+                                    if (lbl && typeof lbl === 'string') {
+                                        let parts = lbl.split(' ');
+                                        if (parts.length >= 2) return parts[0] + ' ' + parts[1];
+                                    }
+                                    return lbl;
+                                }
+                            } 
+                        },
                         y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 11 } }, title: { display: true, text: labelTitle, font: { weight: 'bold', size: 11 } }, reverse: invertY }
                     },
                     plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
