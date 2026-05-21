@@ -3,35 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICM FDV Native Multi-Pane Chart Viewer</title>
+    <title>Multi-File Flow Survey Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; color: #222; background-color: #f7f9fa; }
-        .container { max-width: 1300px; margin: 0 auto; }
-        .upload-zone { border: 2px dashed #0052cc; padding: 25px; text-align: center; background: #fff; border-radius: 6px; margin-bottom: 20px; transition: 0.2s; }
-        .upload-zone:hover { border-color: #0022aa; background: #fafafa; }
-        #fileInput { display: none; }
-        .btn { background: #0052cc; color: white; padding: 12px 24px; border-radius: 4px; cursor: pointer; display: inline-block; font-weight: bold; font-size: 14px; }
-        .btn:hover { background: #0040a3; }
-        .status { margin-top: 12px; color: #555; font-size: 14px; font-weight: 500; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #222; background-color: #f7f9fa; display: flex; height: 100vh; overflow: hidden; }
         
-        .dashboard { display: none; margin-top: 25px; }
-        .graph-pane { background: #fff; padding: 18px; border: 1px solid #dcdcdc; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); height: 250px; position: relative; }
-        h3 { margin: 0 0 12px 0; font-size: 13px; color: #0033aa; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f0f2f5; padding-bottom: 6px; }
+        /* Workspace Sidebar Layout */
+        .sidebar { width: 260px; background: #1e293b; color: #f8fafc; display: flex; flex-direction: column; border-right: 1px solid #334155; }
+        .sidebar-header { padding: 20px; background: #0f172a; border-bottom: 1px solid #334155; }
+        .sidebar-header h2 { margin: 0; font-size: 16px; color: #38bdf8; }
+        .file-list { flex: 1; overflow-y: auto; padding: 15px 10px; }
+        .file-item { padding: 10px 12px; margin-bottom: 8px; border-radius: 4px; background: #334155; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.2s; }
+        .file-item:hover { background: #475569; }
+        .file-item.active { background: #0284c7; color: #fff; font-weight: bold; }
+        
+        /* Main Dashboard Viewport */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100%; }
+        .top-banner { background: #fff; padding: 15px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .top-banner h1 { margin: 0; font-size: 18px; color: #0f172a; }
+        
+        .upload-zone { border: 2px dashed #38bdf8; padding: 20px; text-align: center; background: #fff; border-radius: 6px; margin: 25px; cursor: pointer; }
+        #fileInput { display: none; }
+        .btn { background: #0284c7; color: white; padding: 10px 20px; border-radius: 4px; cursor: pointer; display: inline-block; font-weight: bold; font-size: 13px; }
+        .btn:hover { background: #0369a1; }
+        
+        .workspace-view { display: none; padding: 0 25px 25px 25px; }
+        .graph-pane { background: #fff; padding: 18px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 230px; position: relative; }
+        h3 { margin: 0 0 12px 0; font-size: 12px; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
+        .tab-tip { font-size: 12px; color: #64748b; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Flow Survey Graphing Interface <span style="font-size:14px; font-weight:normal; color:#666;">(Native .FDV Text Stream Parser)</span></h2>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Active Workspace</h2>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Loaded FDV Collections</div>
+        </div>
+        <div class="file-list" id="fileList">
+            <div style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px; font-style: italic;">No profiles loaded yet.</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="top-banner">
+            <h1 id="activeViewTitle">No Active Session</h1>
+            <div class="tab-tip">💡 Tip: Right-click your link to open separate files in individual browser tabs!</div>
+        </div>
         
         <div class="upload-zone" id="dropZone">
-            <label for="fileInput" class="btn">Select Native FDV File</label>
-            <input type="file" id="fileInput" accept=".fdv,.txt">
-            <p style="margin: 10px 0 0 0; color: #666; font-size: 13px;">Drag & drop your native telemetry or model export file here</p>
-            <div id="status" class="status">Awaiting data format package submission...</div>
+            <label for="fileInput" class="btn">Upload Multiple FDV Files</label>
+            <input type="file" id="fileInput" accept=".fdv,.txt" multiple>
+            <p style="margin: 8px 0 0 0; color: #64748b; font-size: 13px;">Select or drag multiple files simultaneously to add pages</p>
+            <div id="status" style="margin-top: 10px; font-size: 13px; font-weight: 500;">Ready...</div>
         </div>
 
-        <div class="dashboard" id="dashboard">
+        <div class="workspace-view" id="workspaceView">
             <div class="graph-pane">
                 <h3>Flow Profile (L/S)</h3>
                 <canvas id="flowChart"></canvas>
@@ -51,81 +78,85 @@
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('dropZone');
         const statusDiv = document.getElementById('status');
-        const dashboard = document.getElementById('dashboard');
+        const fileListContainer = document.getElementById('fileList');
+        const workspaceView = document.getElementById('workspaceView');
+        const activeViewTitle = document.getElementById('activeViewTitle');
         
+        // Active database structure mapping individual runtime file arrays
+        let fileDatabase = {};
+        let activeFileKey = null;
         let charts = { flow: null, depth: null, velocity: null };
 
-        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.background = '#f0f5ff'; });
-        dropZone.addEventListener('dragleave', () => { dropZone.style.background = '#fff'; });
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#0284c7'; });
+        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#38bdf8'; });
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropZone.style.background = '#fff';
-            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+            if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
         });
 
-        function handleFile(file) {
-            if (!file) return;
-            statusDiv.textContent = `Reading data blocks from "${file.name}"...`;
-            dashboard.style.display = 'none';
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                parseNativeFDV(e.target.result);
-            };
-            reader.readAsText(file);
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            statusDiv.textContent = `Streaming files into secure sandbox memory cache...`;
+            
+            let filesProcessed = 0;
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const parsedData = processFDVText(e.target.result);
+                    if (parsedData) {
+                        fileDatabase[file.name] = parsedData;
+                        if (!activeFileKey) activeFileKey = file.name;
+                    }
+                    
+                    filesProcessed++;
+                    if (filesProcessed === files.length) {
+                        rebuildSidebarUI();
+                        switchToFilePage(activeFileKey);
+                        statusDiv.textContent = `Successfully updated workspace package registry with ${files.length} instances.`;
+                    }
+                };
+                reader.readAsText(file);
+            }
         }
 
-        function parseNativeFDV(text) {
+        function processFDVText(text) {
             const lines = text.split(/\r?\n/);
-            
             let startTimeStr = "";
-            let intervalMinutes = 2; // Default template fallback
+            let intervalMinutes = 2;
             let inDataSection = false;
             let rawValuesArray = [];
 
-            // Step 1: Scan and isolate tracking structural components
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
                 if (line.startsWith('*CSTART')) {
-                    // Look at the next few initialization parameter rows
-                    let paramLine1 = lines[i+1] ? lines[i+1].trim() : "";
                     let paramLine2 = lines[i+2] ? lines[i+2].trim() : "";
-                    
-                    // Pull initialization parameters from metadata
                     let match = paramLine2.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
                     if (match) {
-                        startTimeStr = match[1]; // e.g., 2503071110
-                        intervalMinutes = parseInt(match[2]); // e.g., 2
+                        startTimeStr = match[1];
+                        intervalMinutes = parseInt(match[2]);
                     }
                 }
-                
                 if (line.startsWith('*CEND')) {
                     inDataSection = true;
                     continue;
                 }
-
-                // If inside data block, convert layout into numeric sequences
                 if (inDataSection) {
                     let segments = line.split(/\s+/);
                     segments.forEach(token => {
                         let val = parseFloat(token);
-                        if (!isNaN(val)) {
-                            rawValuesArray.push(val);
-                        }
+                        if (!isNaN(val)) rawValuesArray.push(val);
                     });
                 }
             }
 
-            // Step 2: Ensure data parsing safety
-            if (rawValuesArray.length < 3) {
-                statusDiv.textContent = "Error: Found metadata, but failed to reconstruct valid data channels.";
-                return;
-            }
+            if (rawValuesArray.length < 3) return null;
 
-            // Step 3: Parse dates from YYMMDDHHMM strings
             let baseDate = new Date();
             if (startTimeStr.length === 10) {
                 let yy = parseInt("20" + startTimeStr.substring(0,2));
@@ -136,45 +167,62 @@
                 baseDate = new Date(yy, mm, dd, hh, min);
             }
 
-            // Step 4: Map values sequentially into distinct channel buckets
             const timeLabels = [];
             const flowData = [];
             const depthData = [];
             const velocityData = [];
-
             let stepCount = 0;
-            // Iterate in steps of 3 (Flow, Depth, Velocity matrix layout)
+
             for (let j = 0; j < rawValuesArray.length; j += 3) {
                 if (j + 2 >= rawValuesArray.length) break; 
-
-                // Generate incremental timestamp label
                 let currentStepTime = new Date(baseDate.getTime() + (stepCount * intervalMinutes * 60 * 1000));
                 let timeStampLabel = currentStepTime.toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'}) + ' ' + 
                                      currentStepTime.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
                 
                 timeLabels.push(timeStampLabel);
-                flowData.push(rawValuesArray[j]);       // Flow data array index
-                depthData.push(rawValuesArray[j+1]);    // Depth data array index
-                velocityData.push(rawValuesArray[j+2]); // Velocity data array index
-                
+                flowData.push(rawValuesArray[j]);
+                depthData.push(rawValuesArray[j+1]);
+                velocityData.push(rawValuesArray[j+2]);
                 stepCount++;
             }
 
-            statusDiv.textContent = `Parsed ${stepCount} steps successfully! Displaying 3-axis stacked telemetry window.`;
-            dashboard.style.display = 'block';
+            return { labels: timeLabels, flow: flowData, depth: depthData, velocity: velocityData };
+        }
 
-            // Step 5: Render individual canvas rows
-            renderPane('flowChart', timeLabels, flowData, 'Flow (L/S)', '#9b59b6', 'rgba(155, 89, 182, 0.04)', 'flow');
-            renderPane('depthChart', timeLabels, depthData, 'Depth (MM)', '#2980b9', 'rgba(41, 128, 185, 0.04)', 'depth');
-            renderPane('velocityChart', timeLabels, velocityData, 'Velocity (M/S)', '#27ae60', 'rgba(39, 174, 96, 0.04)', 'velocity');
+        function rebuildSidebarUI() {
+            fileListContainer.innerHTML = '';
+            Object.keys(fileDatabase).forEach(fileName => {
+                const div = document.createElement('div');
+                div.className = `file-item ${fileName === activeFileKey ? 'active' : ''}`;
+                div.textContent = fileName;
+                div.onclick = () => switchToFilePage(fileName);
+                fileListContainer.appendChild(div);
+            });
+        }
+
+        function switchToFilePage(fileName) {
+            if (!fileName || !fileDatabase[fileName]) return;
+            activeFileKey = fileName;
+            
+            // Highlight matching sidebar tag array coordinates
+            const items = document.querySelectorAll('.file-item');
+            items.forEach(item => {
+                if (item.textContent === fileName) item.classList.add('active');
+                else item.classList.remove('active');
+            });
+
+            activeViewTitle.textContent = `Viewing Profile: ${fileName}`;
+            workspaceView.style.display = 'block';
+
+            const dataset = fileDatabase[fileName];
+            renderPane('flowChart', dataset.labels, dataset.flow, 'Flow (L/S)', '#9b59b6', 'rgba(155, 89, 182, 0.04)', 'flow');
+            renderPane('depthChart', dataset.labels, dataset.depth, 'Depth (MM)', '#2980b9', 'rgba(41, 128, 185, 0.04)', 'depth');
+            renderPane('velocityChart', dataset.labels, dataset.velocity, 'Velocity (M/S)', '#27ae60', 'rgba(39, 174, 96, 0.04)', 'velocity');
         }
 
         function renderPane(canvasId, labels, data, labelTitle, primaryColor, fillBG, key) {
             const ctx = document.getElementById(canvasId).getContext('2d');
-            
-            if (charts[key]) {
-                charts[key].destroy();
-            }
+            if (charts[key]) charts[key].destroy();
 
             charts[key] = new Chart(ctx, {
                 type: 'line',
@@ -186,7 +234,6 @@
                         backgroundColor: fillBG,
                         borderWidth: 1.5,
                         pointRadius: 0,
-                        pointHoverRadius: 4,
                         fill: true,
                         tension: 0.02
                     }]
@@ -195,20 +242,10 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { maxTicksLimit: 12, color: '#666', font: { size: 10 } }
-                        },
-                        y: {
-                            grid: { color: '#eaeded' },
-                            ticks: { color: '#444', font: { size: 11 } },
-                            title: { display: true, text: labelTitle, font: { weight: 'bold', size: 11 } }
-                        }
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 12, color: '#666', font: { size: 10 } } },
+                        y: { grid: { color: '#eaeded' }, ticks: { color: '#444', font: { size: 11 } }, title: { display: true, text: labelTitle, font: { weight: 'bold', size: 11 } } }
                     },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { mode: 'index', intersect: false }
-                    }
+                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
                 }
             });
         }
