@@ -285,7 +285,9 @@
                         rebuildInventoriesUI();
                         populateRainDropdown();
                         
+                        // Successfully loaded profiles -> Hide upload bar completely to save space
                         if (Object.keys(fdvDatabase).length > 0 || Object.keys(rainDatabase).length > 0) {
+                            dropZone.style.display = 'none';
                             workspaceView.style.display = 'block';
                             controlBar.style.display = 'flex';
                         }
@@ -301,8 +303,6 @@
                             renderCumulativeComparisonChart();
                             calculateAndPopulateStats();
                         }
-
-                        statusDiv.textContent = `Successfully updated library: ${Object.keys(fdvDatabase).length} FDVs and ${Object.keys(rainDatabase).length} Rain profiles ready.`;
                     }
                 };
                 reader.readAsText(file);
