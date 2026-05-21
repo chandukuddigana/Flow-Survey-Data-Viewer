@@ -28,6 +28,9 @@
         .rain-selector, .monitor-selector { padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 13px; font-weight: 600; color: #0f172a; outline: none; cursor: pointer; width: 100%; box-sizing: border-box; }
         .rain-selector:hover, .monitor-selector:hover { border-color: #94a3b8; }
 
+        /* Styles for the Size of the Monitored Pipe Display Box */
+        .pipe-size-box { padding: 8px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 14px; font-weight: bold; color: #0f172a; box-sizing: border-box; width: 100%; }
+
         /* LAYOUT GRID SYSTEM WITH MAXIMUM WIDTH */
         .workspace-view { display: none; padding: 25px; box-sizing: border-box; width: 100%; }
         .workspace-layout { display: flex; gap: 25px; align-items: flex-start; }
@@ -106,6 +109,12 @@
                                 <option value="">-- No Monitor Station Selected --</option>
                             </select>
                         </div>
+
+                        <div class="dropdown-wrapper" style="margin-top: 4px;">
+                            <span>Size of the Monitored Pipe:</span>
+                            <div class="pipe-size-box" id="pipeSizeDisplayBox">—</div>
+                        </div>
+
                         <div class="dropdown-wrapper" style="margin-top: 4px;">
                             <span>Select Rain gauge:</span>
                             <select class="rain-selector" id="rainSelector">
@@ -196,6 +205,7 @@
         const controlBar = document.getElementById('controlBar');
         const monitorSelector = document.getElementById('monitorSelector');
         const rainSelector = document.getElementById('rainSelector');
+        const pipeSizeDisplayBox = document.getElementById('pipeSizeDisplayBox');
         let fdvDatabase = {};
         let rainDatabase = {};
         let activeFdvKey = null;
@@ -234,7 +244,8 @@
                             rainDatabase[cleanKey] = parsedRain;
                         }
                     } else {
-                        const parsedFdv = processFdvFile(contentText);
+                        // Pass file name to context checker
+                        const parsedFdv = processFdvFile(contentText, file.name);
                         if (parsedFdv) {
                             fdvDatabase[file.name] = parsedFdv;
                         }
@@ -262,6 +273,7 @@
                             activeMonitorHeader.style.display = 'none';
                             hydraulicChartsWrapper.style.display = 'none';
                             scatterPane.style.display = 'none';
+                            pipeSizeDisplayBox.textContent = "—";
                             updateRainfallChartTrack();
                             renderCumulativeComparisonChart();
                             calculateAndPopulateStats();
@@ -272,39 +284,42 @@
             }
         }
 
-        function processFdvFile(text) {
+        function processFdvFile(text, filename) {
             const lines = text.split(/\r?\n/);
             let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
             let pipeSize = "";
             
+            // Check if the current filename context indicates a DM or FM station file
+            const isDM = filename.toUpperCase().includes("_DM") || filename.toUpperCase().includes(".DM");
+
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
                 
                 if (line.startsWith('*CSTART')) {
-                    // Line directly beneath *CSTART contains the pipe sizing parameters
-                    let paramLine1 = lines[i+1] ? lines[i+1].trim() : "";
-                    
-                    // Pull the pipe size string right from this immediate line definition
-                    if (paramLine1) {
-                        // Clean away comment characters if they are present in the header segment
-                        let cleanParam = paramLine1.replace(/[*#]/g, '').trim();
+                    if (isDM) {
+                        pipeSize = "N/A";
+                    } else {
+                        // Line directly beneath *CSTART contains the pipe sizing parameters for FM files
+                        let paramLine1 = lines[i+1] ? lines[i+1].trim() : "";
                         
-                        // Look for numeric layout indicators (e.g. "300", "375mm")
-                        let sizeMatch = cleanParam.match(/\d+/);
-                        if (sizeMatch) {
-                            pipeSize = sizeMatch[0] + "mm";
-                        } else {
-                            pipeSize = cleanParam; // Fallback to raw string value if complex text format
+                        if (paramLine1) {
+                            let cleanParam = paramLine1.replace(/[*#]/g, '').trim();
+                            let sizeMatch = cleanParam.match(/\d+/);
+                            if (sizeMatch) {
+                                pipeSize = sizeMatch[0] + "mm";
+                            } else {
+                                pipeSize = cleanParam;
+                            }
                         }
                     }
 
                     // Look ahead further down to extract structural time variables safely 
+                    let paramLine1ForTime = lines[i+1] ? lines[i+1].trim() : "";
                     let paramLineNext = lines[i+2] ? lines[i+2].trim() : "";
                     let match = paramLineNext.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
-                    if (!match && paramLine1) {
-                        // Fallback match check on paramLine1 in case file order varies
-                        match = paramLine1.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    if (!match && paramLine1ForTime) {
+                        match = paramLine1ForTime.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
                     }
                     if (match) { 
                         startTimeStr = match[1];
@@ -318,7 +333,7 @@
                 }
             }
             
-            if (!pipeSize) pipeSize = "Unknown Size";
+            if (!pipeSize) pipeSize = isDM ? "N/A" : "Unknown Size";
             if (rawValues.length < 3) return null;
             let baseDate = parseYYMMDDHHMM(startTimeStr);
             const labels = [], flow = [], depth = [], velocity = [];
@@ -434,9 +449,12 @@
             const fdvData = fdvDatabase[fdvKey];
             const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
             
-            // Simplified here: Displays only the Monitor ID as the clean visual header layout
+            // Keeps the title strictly as the monitor ID
             activeMonitorHeader.textContent = cleanDisplayLabel;
             activeMonitorHeader.style.display = 'block';
+
+            // Updates the dedicated pipe display box between the dropdown menus
+            pipeSizeDisplayBox.textContent = fdvData.pipeSize;
 
             if (monitorSelector.value !== fdvKey) {
                 monitorSelector.value = fdvKey;
