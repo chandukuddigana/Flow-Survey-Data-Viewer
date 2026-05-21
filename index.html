@@ -6,7 +6,6 @@
     <title>Flow Survey Data Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Full CSS for Layout Integrity */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #222; background-color: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
         .sidebar { width: 280px; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; border-right: 1px solid #1e293b; flex-shrink: 0; }
         .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #1e293b; }
@@ -46,20 +45,21 @@
         <div class="graph-pane"><h3>Cumulative Rainfall (mm)</h3><canvas id="cumulativeChart"></canvas></div>
         <table id="statsTable">
             <thead><tr><th>Metric</th><th>Rain (mm/hr)</th><th>Depth (mm)</th></tr></thead>
-            <tbody id="statsBody"></tbody>
+            <tbody id="statsBody">
+                <tr><td class="label-cell">Total</td><td id="totalIntensity">0</td><td id="totalDepth">0</td></tr>
+            </tbody>
         </table>
     </div>
 </div>
 
 <script>
-    // 1. PREVENT BROWSER OPENING FILES IN NEW TABS
+    // 1. STOP BROWSER DEFAULT BEHAVIOR
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
         window.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, false);
     });
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
-
     dropZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', e => handleFiles(e.target.files));
     dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
@@ -71,44 +71,47 @@
         for (let file of files) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                const text = e.target.result;
-                if (file.name.toLowerCase().endsWith('.r')) processRainfall(text, file.name);
-                else if (file.name.toLowerCase().endsWith('.fdv')) processFdv(text, file.name);
+                if (file.name.toLowerCase().endsWith('.r')) {
+                    const data = processRainFile(e.target.result, file.name);
+                    // Add your Chart.js rendering code here using data.intensity and data.depths
+                    document.getElementById('totalDepth').textContent = data.totalDepth.toFixed(2);
+                } else if (file.name.toLowerCase().endsWith('.fdv')) {
+                    processFdv(e.target.result, file.name);
+                }
             };
             reader.readAsText(file);
         }
     }
 
-    function processRainfall(text, name) {
-        const intervalHours = 2 / 60; // Assuming 2 min interval
-        const lines = text.split(/\r?\n/);
-        let intensities = [];
-        let inData = false;
-
-        lines.forEach(line => {
-            if (line.startsWith('*CEND')) inData = true;
-            else if (inData) {
-                line.split(/\s+/).forEach(v => { if(!isNaN(parseFloat(v))) intensities.push(parseFloat(v)); });
-            }
-        });
-
-        // Conversion Logic: Intensity(mm/hr) * hours = Depth(mm)
-        const depths = intensities.map(i => i * intervalHours);
-        const cumulative = [];
-        let sum = 0;
-        depths.forEach(d => { sum += d; cumulative.push(sum); });
-
-        console.log("Processed Rainfall:", { intensities, cumulative });
-        // NOTE: Now integrate your Chart.js rendering calls here using 'intensities' and 'cumulative'
+    function processRainFile(text, fileName) { 
+        const lines = text.split(/\r?\n/); 
+        let intervalMinutes = 2; 
+        let rawIntensity = []; 
+        let inData = false; 
+        
+        for (let line of lines) { 
+            if (line.startsWith('*CEND')) { inData = true; continue; } 
+            if (inData) { 
+                line.split(/\s+/).forEach(val => { 
+                    let v = parseFloat(val); 
+                    if (!isNaN(v)) rawIntensity.push(v); 
+                }); 
+            } 
+        } 
+        
+        const intervalHours = intervalMinutes / 60; 
+        const depths = rawIntensity.map(intensity => intensity * intervalHours); 
+        const totalDepth = depths.reduce((sum, d) => sum + d, 0); 
+        
+        return { intensity: rawIntensity, depths: depths, totalDepth: totalDepth }; 
     }
 
-    function processFdv(text, name) {
-        // UI Clean: Remove .fdv
-        const cleanName = name.replace(/\.[fF][dD][vV]$/, '');
-        const div = document.createElement('div');
-        div.className = 'station-item';
-        div.textContent = cleanName;
-        document.getElementById('fdvListContainer').appendChild(div);
+    function processFdv(text, name) { 
+        const cleanName = name.replace(/\.[fF][dD][vV]$/, ''); 
+        const div = document.createElement('div'); 
+        div.className = 'station-item'; 
+        div.textContent = cleanName; 
+        document.getElementById('fdvListContainer').appendChild(div); 
     }
 </script>
 </body>
