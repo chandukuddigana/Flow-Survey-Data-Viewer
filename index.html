@@ -196,12 +196,10 @@
         const controlBar = document.getElementById('controlBar');
         const monitorSelector = document.getElementById('monitorSelector');
         const rainSelector = document.getElementById('rainSelector');
-        
         let fdvDatabase = {};
         let rainDatabase = {};
         let activeFdvKey = null;
         let charts = { rain: null, cumulative: null, flow: null, depth: null, velocity: null, scatter: null };
-        
         const lineColorsPalette = ['#1e3a8a', '#2563eb', '#06b6d4', '#f59e0b', '#ec4899', '#8b5cf6', '#ef4444'];
 
         const preventDefaults = (e) => { e.preventDefault(); e.stopPropagation(); };
@@ -209,7 +207,6 @@
             window.addEventListener(eventName, preventDefaults, false);
             dropZone.addEventListener(eventName, preventDefaults, false);
         });
-
         dropZone.addEventListener('click', () => { fileInput.click(); });
 
         fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); });
@@ -230,7 +227,6 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const contentText = e.target.result;
-                    
                     if (contentText.includes('FIELD: 1,RAIN') || fileNameUpper.endsWith('.R')) {
                         const parsedRain = processRainFile(contentText, file.name);
                         if (parsedRain) {
@@ -247,7 +243,6 @@
                     filesProcessed++;
                     if (filesProcessed === files.length) {
                         const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-                        
                         if (sortedFdvKeys.length > 0 && (!activeFdvKey || !fdvDatabase[activeFdvKey])) {
                             activeFdvKey = sortedFdvKeys[0];
                         }
@@ -287,23 +282,33 @@
                 if (!line) continue;
                 
                 if (line.startsWith('*CSTART')) {
-                    // Line directly beneath *CSTART is line index i+1 (Timestamp and interval details)
+                    // Line directly beneath *CSTART contains the pipe sizing parameters
                     let paramLine1 = lines[i+1] ? lines[i+1].trim() : "";
-                    let match = paramLine1.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
-                    if (match) { 
-                        startTimeStr = match[1]; 
-                        intervalMinutes = parseInt(match[2]); 
-                    }
-
-                    // Line immediately beneath the configuration metadata parameters is line index i+2
-                    // This is where standard pipe diameter configuration specifications reside
-                    let configLine = lines[i+2] ? lines[i+2].trim() : "";
-                    if (configLine) {
-                        // Extract any numerical values from this target line entry
-                        let sizeMatch = configLine.match(/\d+/);
+                    
+                    // Pull the pipe size string right from this immediate line definition
+                    if (paramLine1) {
+                        // Clean away comment characters if they are present in the header segment
+                        let cleanParam = paramLine1.replace(/[*#]/g, '').trim();
+                        
+                        // Look for numeric layout indicators (e.g. "300", "375mm")
+                        let sizeMatch = cleanParam.match(/\d+/);
                         if (sizeMatch) {
                             pipeSize = sizeMatch[0] + "mm";
+                        } else {
+                            pipeSize = cleanParam; // Fallback to raw string value if complex text format
                         }
+                    }
+
+                    // Look ahead further down to extract structural time variables safely 
+                    let paramLineNext = lines[i+2] ? lines[i+2].trim() : "";
+                    let match = paramLineNext.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    if (!match && paramLine1) {
+                        // Fallback match check on paramLine1 in case file order varies
+                        match = paramLine1.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    }
+                    if (match) { 
+                        startTimeStr = match[1];
+                        intervalMinutes = parseInt(match[2]); 
                     }
                 }
                 
@@ -314,7 +319,6 @@
             }
             
             if (!pipeSize) pipeSize = "Unknown Size";
-
             if (rawValues.length < 3) return null;
             let baseDate = parseYYMMDDHHMM(startTimeStr);
             const labels = [], flow = [], depth = [], velocity = [];
@@ -352,11 +356,9 @@
                 labels.push(getStepLabel(baseDate, step, intervalMinutes));
                 rawIntensity.push(val);
             });
-
             const intervalHours = intervalMinutes / 60;
             const depths = rawIntensity.map(intensity => intensity * intervalHours);
             const totalDepth = depths.reduce((sum, d) => sum + d, 0);
-
             return { 
                 labels, 
                 values: rawIntensity, 
@@ -387,14 +389,12 @@
         function populateMonitorDropdown() {
             monitorSelector.innerHTML = '<option value="">-- No Monitor Station Selected --</option>';
             const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-            
             sortedFdvKeys.forEach(key => {
                 const opt = document.createElement('option');
                 opt.value = key;
                 opt.textContent = key.replace(/\.[fF][dD][vV]$/, '');
                 monitorSelector.appendChild(opt);
             });
-
             if (activeFdvKey) {
                 monitorSelector.value = activeFdvKey;
             }
@@ -411,7 +411,6 @@
                 opt.textContent = key;
                 rainSelector.appendChild(opt);
             });
-            
             if (rainDatabase[previousSelection]) {
                 rainSelector.value = previousSelection;
             }
@@ -422,7 +421,6 @@
                 switchToFilePage(e.target.value);
             }
         });
-
         rainSelector.addEventListener('change', () => {
             updateRainfallChartTrack();
             renderCumulativeComparisonChart();
@@ -435,8 +433,7 @@
             
             const fdvData = fdvDatabase[fdvKey];
             const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
-            
-            // Render explicit structural combination string
+            // Render explicit structural combination string directly inside red header title
             activeMonitorHeader.textContent = `${cleanDisplayLabel} - ${fdvData.pipeSize}`;
             activeMonitorHeader.style.display = 'block';
 
@@ -445,7 +442,6 @@
             }
 
             hydraulicChartsWrapper.style.display = 'block';
-            
             renderPane('depthChart', fdvData.labels, fdvData.depth, 'Depth (mm)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'depth');
             renderPane('flowChart', fdvData.labels, fdvData.flow, 'Flow (lit/sec)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'flow');
             renderPane('velocityChart', fdvData.labels, fdvData.velocity, 'Velocity (m/s)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'velocity');
@@ -472,7 +468,6 @@
 
         function renderCumulativeComparisonChart() {
             const rainKeys = Object.keys(rainDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-            
             if (rainKeys.length === 0) {
                 cumulativePane.style.display = 'none';
                 if (charts.cumulative) { charts.cumulative.destroy(); charts.cumulative = null; }
@@ -489,7 +484,6 @@
             }
 
             const datasets = [];
-
             rainKeys.forEach((gaugeKey, index) => {
                 const rainData = rainDatabase[gaugeKey];
                 let runningSum = 0;
@@ -588,7 +582,6 @@
 
             const ctx = document.getElementById('scatterChart').getContext('2d');
             if (charts.scatter) charts.scatter.destroy();
-
             charts.scatter = new Chart(ctx, {
                 type: 'scatter',
                 data: {
@@ -722,7 +715,8 @@
                 type: invertY ? 'bar' : 'line',
                 data: {
                     labels: labels,
-                    datasets: [{ data: data, borderColor: primaryColor, backgroundColor: fillBG, borderWidth: invertY ? 0 : 1.5, barPercentage: 1.0, categoryPercentage: 1.0, pointRadius: 0, fill: true, tension: 0.02 }]
+                    datasets: [{ data: data, borderColor: primaryColor, backgroundColor: fillBG, borderWidth: invertY ? 0 : 1.5, 
+                    barPercentage: 1.0, categoryPercentage: 1.0, pointRadius: 0, fill: true, tension: 0.02 }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
@@ -744,7 +738,8 @@
                                 }
                             } 
                         },
-                        y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 11 } }, title: { display: true, text: labelTitle, font: { weight: 'bold', size: 11 } }, reverse: invertY }
+                        y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 11 } }, title: { display: true, text: labelTitle, 
+                        font: { weight: 'bold', size: 11 } }, reverse: invertY }
                     },
                     plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
                 }
