@@ -3,48 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Pane Flow Survey Plotter</title>
-    <!-- Core chart and sheet parsers -->
+    <title>Flow Survey Data Viewer</title>
+    <!-- Include SheetJS for Excel files -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Include PapaParse for FDV/CSV text files -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; color: #333; background-color: #fcfcfc; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .upload-zone { border: 2px dashed #0066cc; padding: 20px; text-align: center; background: #fff; border-radius: 8px; margin-bottom: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 30px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .upload-zone { border: 2px dashed #ccc; padding: 30px; text-align: center; background: #f9f9f9; border-radius: 8px; margin-bottom: 20px; }
+        .upload-zone:hover { border-color: #0066cc; background: #f0f7ff; }
         #fileInput { display: none; }
         .btn { background: #0066cc; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; display: inline-block; font-weight: bold; }
-        .status { margin-top: 10px; color: #222; font-weight: 600; }
-        
-        .dashboard { display: none; margin-top: 20px; }
-        .graph-pane { background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); position: relative; height: 260px; }
-        h3 { margin: 0 0 10px 0; font-size: 14px; color: #0044aa; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .status { margin-top: 10px; color: #666; font-style: italic; }
+        .table-container { overflow-x: auto; margin-top: 20px; border: 1px solid #e0e0e0; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        th { background-color: #f4f4f4; padding: 12px; border-bottom: 2px solid #ddd; position: sticky; top: 0; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        tr:hover { background-color: #fcfcfc; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Flow Survey Multi-Pane Viewer <span style="font-size:14px; font-weight:normal; color:#666;">(Stacked ICM Hydrographs)</span></h2>
+        <h2>Flow Survey Data Viewer</h2>
+        <p>Upload your Excel (.xlsx, .xls) or Flow Survey (.fdv) files to view the raw data instantly.</p>
         
         <div class="upload-zone" id="dropZone">
-            <label for="fileInput" class="btn">Select Flow File</label>
+            <label for="fileInput" class="btn">Select File</label>
             <input type="file" id="fileInput" accept=".xlsx, .xls, .fdv, .txt, .csv">
-            <p style="margin: 8px 0 0 0; color: #555;">Drop your .fdv or telemetry data file here</p>
-            <div id="status" class="status">Awaiting data input...</div>
+            <p>or drag and drop your file here</p>
+            <div id="status" class="status">Ready for file...</div>
         </div>
 
-        <div class="dashboard" id="dashboard">
-            <!-- Stacked Panes for simultaneous hydraulic tracking -->
-            <div class="graph-pane" id="pane-depth">
-                <h3>Depth / Level Profile</h3>
-                <canvas id="depthChart"></canvas>
-            </div>
-            <div class="graph-pane" id="pane-velocity">
-                <h3>Velocity Profile</h3>
-                <canvas id="velocityChart"></canvas>
-            </div>
-            <div class="graph-pane" id="pane-flow">
-                <h3>Flow Rate Profile</h3>
-                <canvas id="flowChart"></canvas>
-            </div>
+        <div class="table-container">
+            <table id="dataTable">
+                <thead><tr id="tableHeader"></tr></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
         </div>
     </div>
 
@@ -52,28 +47,29 @@
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('dropZone');
         const statusDiv = document.getElementById('status');
-        const dashboard = document.getElementById('dashboard');
-        
-        let charts = { depth: null, velocity: null, flow: null };
 
+        // Handle file selection
         fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#0044aa'; });
-        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#0066cc'; });
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#0066cc'; });
+        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#ccc'; });
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
+            dropZone.style.borderColor = '#ccc';
             if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
         });
 
         function handleFile(file) {
             if (!file) return;
-            statusDiv.textContent = `Processing data arrays...`;
-            dashboard.style.display = 'none';
-
+            statusDiv.textContent = `Processing: ${file.name}...`;
             const extension = file.name.split('.').pop().toLowerCase();
+
             if (extension === 'xlsx' || extension === 'xls') {
                 parseExcel(file);
             } else {
-                parseFlowText(file);
+                // Treat .fdv, .csv, or .txt as text data
+                parseText(file);
             }
         }
 
@@ -82,138 +78,63 @@
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-                processDataset(jsonData);
+                // Target the first sheet in the workbook
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                // Convert to array of arrays
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                renderTable(jsonData);
             };
             reader.readAsArrayBuffer(file);
         }
 
-        function parseFlowText(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const lines = e.target.result.split(/\r?\n/);
-                const matrix = [];
-                let tracking = false;
-
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    
-                    if (!tracking && (line.toLowerCase().includes('date') || line.toLowerCase().includes('time') || line.match(/^[0-9]/))) {
-                        tracking = true;
-                    }
-                    if (tracking) {
-                        let row = line.includes(',') ? line.split(',') : (line.includes('\t') ? line.split('\t') : line.split(/\s+/));
-                        matrix.push(row.map(cell => cell.replace(/['"]/g, '').trim()));
-                    }
-                }
-                processDataset(matrix);
-            };
-            reader.readAsText(file);
+        function parseText(file) {
+            Papa.parse(file, {
+                complete: function(results) {
+                    renderTable(results.data);
+                },
+                dynamicTyping: true,
+                skipEmptyLines: true
+            });
         }
 
-        function processDataset(matrix) {
-            if (!matrix || matrix.length < 2) {
-                statusDiv.textContent = "Error: Invalid data matrix structure.";
+        function renderTable(data) {
+            const headerRow = document.getElementById('tableHeader');
+            const bodyContainer = document.getElementById('tableBody');
+            
+            // Clear previous data
+            headerRow.innerHTML = '';
+            bodyContainer.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                statusDiv.textContent = "Error: File appears to be empty.";
                 return;
             }
 
-            const headers = matrix[0];
-            const timeLabels = [];
-            
-            // Arrays to isolate specific parameters
-            const dataArrays = { depth: [], velocity: [], flow: [] };
-            
-            // Map columns by matching keyword identifiers common in hydraulic logs
-            let indices = { depth: -1, velocity: -1, flow: -1 };
-            headers.forEach((h, idx) => {
-                const name = h.toLowerCase();
-                if (name.includes('depth') || name.includes('level') || name.includes('dpth') || name.includes('mm')) {
-                    if (indices.depth === -1) indices.depth = idx;
-                } else if (name.includes('vel') || name.includes('vms') || name.includes('speed') || name.includes('m/s')) {
-                    if (indices.velocity === -1) indices.velocity = idx;
-                } else if (name.includes('flow') || name.includes('q') || name.includes('m3s') || name.includes('l/s')) {
-                    if (indices.flow === -1) indices.flow = idx;
-                }
+            // Generate Headers (Row 0)
+            const headers = data[0];
+            headers.forEach(headerText => {
+                const th = document.createElement('th');
+                th.textContent = headerText !== undefined ? headerText : '';
+                headerRow.appendChild(th);
             });
 
-            // Fallback strategy if specific headers aren't explicitly named
-            if (indices.depth === -1) indices.depth = 1; 
-            if (indices.velocity === -1) indices.velocity = indices.depth + 1 < headers.length ? indices.depth + 1 : 1;
-            if (indices.flow === -1) indices.flow = indices.velocity + 1 < headers.length ? indices.velocity + 1 : 1;
+            // Generate Data Rows
+            for (let i = 1; i < data.length; i++) {
+                const rowData = data[i];
+                // Skip completely empty rows
+                if (rowData.every(cell => cell === null || cell === '')) continue;
 
-            // Extract values line by line
-            for (let i = 1; i < matrix.length; i++) {
-                const row = matrix[i];
-                if (!row || row.length < headers.length) continue;
-
-                const timestamp = row[0] + (row[1] && isNaN(row[1]) ? ' ' + row[1] : '');
-                timeLabels.push(timestamp);
-
-                // Safe parsing helper
-                const getVal = (idx) => {
-                    let v = parseFloat(row[idx]);
-                    return isNaN(v) ? 0 : v;
-                };
-
-                dataArrays.depth.push(getVal(indices.depth));
-                dataArrays.velocity.push(getVal(indices.velocity));
-                dataArrays.flow.push(getVal(indices.flow));
-            }
-
-            statusDiv.textContent = `Successfully parsed! Rendering stacked hydrographs...`;
-            dashboard.style.display = 'block';
-
-            // Build individual visual panes
-            createPane('depthChart', timeLabels, dataArrays.depth, headers[indices.depth] || 'Depth', '#4a90e2', 'rgba(74, 144, 226, 0.05)', 'depth');
-            createPane('velocityChart', timeLabels, dataArrays.velocity, headers[indices.velocity] || 'Velocity', '#47c9a2', 'rgba(71, 201, 162, 0.05)', 'velocity');
-            createPane('flowChart', timeLabels, dataArrays.flow, headers[indices.flow] || 'Flow', '#e056fd', 'rgba(224, 86, 253, 0.05)', 'flow');
-        }
-
-        function createPane(canvasId, labels, data, title, primaryColor, fillColor, key) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            
-            if (charts[key]) {
-                charts[key].destroy();
-            }
-
-            charts[key] = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: title,
-                        data: data,
-                        borderColor: primaryColor,
-                        backgroundColor: fillColor,
-                        borderWidth: 1.8,
-                        pointRadius: 0,
-                        pointHoverRadius: 4,
-                        fill: true,
-                        tension: 0.05
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { maxTicksLimit: 10, color: '#777', font: { size: 10 } }
-                        },
-                        y: {
-                            grid: { color: '#f0f0f0' },
-                            ticks: { color: '#555', font: { size: 11 } },
-                            title: { display: true, text: title, font: { weight: 'bold', size: 12 } }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { mode: 'index', intersect: false }
-                    }
+                const tr = document.createElement('tr');
+                // Ensure row displays columns matching the header length
+                for (let j = 0; j < headers.length; j++) {
+                    const td = document.createElement('td');
+                    td.textContent = rowData[j] !== undefined ? rowData[j] : '';
+                    tr.appendChild(td);
                 }
-            });
+                bodyContainer.appendChild(tr);
+            }
+            statusDiv.textContent = `Successfully loaded ${data.length - 1} rows.`;
         }
     </script>
 </body>
