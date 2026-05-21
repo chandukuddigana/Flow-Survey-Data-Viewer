@@ -335,9 +335,11 @@
 
                     let paramLine1ForTime = lines[i+1] ? lines[i+1].trim() : "";
                     let paramLineNext = lines[i+2] ? lines[i+2].trim() : "";
-                    let match = paramLineNext.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    
+                    // FIXED: REGEX TO CAPTURE 12 DIGIT DATE (DDMMYYYYHHMM)
+                    let match = paramLineNext.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
                     if (!match && paramLine1ForTime) {
-                        match = paramLine1ForTime.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                        match = paramLine1ForTime.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
                     }
                     if (match) { 
                         startTimeStr = match[1];
@@ -353,7 +355,7 @@
             
             if (!pipeSize) pipeSize = isDM ? "N/A" : "Unknown Size";
             if (rawValues.length < 3) return null;
-            let baseDate = parseYYMMDDHHMM(startTimeStr);
+            let baseDate = parseDate(startTimeStr);
             const labels = [], flow = [], depth = [], velocity = [];
             let step = 0;
             for (let j = 0; j < rawValues.length; j += 3) {
@@ -373,7 +375,8 @@
                 if (!line) continue;
                 if (line.startsWith('*CSTART')) {
                     let paramLine2 = lines[i+1] ? lines[i+1].trim() : "";
-                    let match = paramLine2.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    // FIXED: REGEX TO CAPTURE 12 DIGIT DATE (DDMMYYYYHHMM)
+                    let match = paramLine2.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
                     if (match) { startTimeStr = match[1]; intervalMinutes = parseInt(match[2]); }
                 }
                 if (line.startsWith('*CEND')) { inData = true; continue; }
@@ -382,7 +385,7 @@
                 }
             }
             if (rawValues.length === 0) return null;
-            let baseDate = parseYYMMDDHHMM(startTimeStr);
+            let baseDate = parseDate(startTimeStr);
             
             const labels = [], rawIntensity = [];
             rawValues.forEach((val, step) => {
@@ -401,11 +404,15 @@
             };
         }
 
-        function parseYYMMDDHHMM(str) {
-            if (!str || str.length !== 10) return new Date();
-            let yy = parseInt("20" + str.substring(0,2)), mm = parseInt(str.substring(2,4)) - 1,
-                dd = parseInt(str.substring(4,6)), hh = parseInt(str.substring(6,8)), min = parseInt(str.substring(8,10));
-            return new Date(yy, mm, dd, hh, min);
+        // FIXED: PARSE DATE FUNCTION FOR DDMMYYYYHHMM
+        function parseDate(str) {
+            if (!str || str.length < 12) return new Date();
+            let dd = parseInt(str.substring(0,2)),
+                mm = parseInt(str.substring(2,4)) - 1,
+                yyyy = parseInt(str.substring(4,8)),
+                hh = parseInt(str.substring(8,10)),
+                min = parseInt(str.substring(10,12));
+            return new Date(yyyy, mm, dd, hh, min);
         }
 
         function getStepLabel(baseDate, step, interval) {
