@@ -45,7 +45,7 @@
         /* SECTION A: Wide Primary Graphs */
         .graph-section-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         
-        /* PANEL B & C: Auxiliary Sidebar Matrix */
+        /* PANEL B, C & D: Auxiliary Sidebar Matrix */
         .auxiliary-section-column { width: 340px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; }
 
         .graph-pane { background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); height: 185px; position: relative; }
@@ -54,11 +54,13 @@
         /* Specific scaling styles for Side-Deck Panels */
         .graph-pane.legend-pane { border-top: 4px solid #f59e0b; height: auto; margin-bottom: 0; }
         .graph-pane.cumulative-pane { border-top: 4px solid #3b82f6; height: 210px; margin-bottom: 0; }
+        .graph-pane.scatter-pane { border-top: 4px solid #10b981; height: 210px; margin-bottom: 0; }
         
         h3 { margin: 0 0 8px 0; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
         .rain-pane h3 { color: #1e3a8a; }
         .legend-pane h3 { color: #d97706; }
         .cumulative-pane h3 { color: #2563eb; }
+        .scatter-pane h3 { color: #059669; }
         .status-msg { font-size: 12px; color: #64748b; font-weight: 500; }
     </style>
 </head>
@@ -137,6 +139,11 @@
                         <h3>Cumulative Rainfall (MM)</h3>
                         <canvas id="cumulativeChart"></canvas>
                     </div>
+
+                    <div class="graph-pane scatter-pane" id="scatterPane" style="display: none;">
+                        <h3>Depth vs Velocity Correlation</h3>
+                        <canvas id="scatterChart"></canvas>
+                    </div>
                     
                     <div id="futureAuxiliaryContainer"></div>
                 </div>
@@ -154,6 +161,7 @@
         const workspaceView = document.getElementById('workspaceView');
         const hydraulicChartsWrapper = document.getElementById('hydraulicChartsWrapper');
         const cumulativePane = document.getElementById('cumulativePane');
+        const scatterPane = document.getElementById('scatterPane');
         const legendPane = document.getElementById('legendPane');
         const customLegendContainer = document.getElementById('customLegendContainer');
         const controlBar = document.getElementById('controlBar');
@@ -164,7 +172,7 @@
         let fdvDatabase = {};
         let rainDatabase = {};
         let activeFdvKey = null;
-        let charts = { rain: null, cumulative: null, flow: null, depth: null, velocity: null };
+        let charts = { rain: null, cumulative: null, flow: null, depth: null, velocity: null, scatter: null };
         
         const lineColorsPalette = ['#1e3a8a', '#2563eb', '#06b6d4', '#f59e0b', '#ec4899', '#8b5cf6', '#ef4444'];
 
@@ -227,6 +235,7 @@
                             activeViewTitle.textContent = `Rainfall Analysis Deck`;
                             globalStatus.textContent = `Precipitation pools loaded.`;
                             hydraulicChartsWrapper.style.display = 'none';
+                            scatterPane.style.display = 'none';
                             updateRainfallChartTrack();
                             renderCumulativeComparisonChart();
                         }
@@ -382,6 +391,7 @@
             
             updateRainfallChartTrack();
             renderCumulativeComparisonChart();
+            renderScatterCorrelationChart();
         }
 
         function updateRainfallChartTrack() {
@@ -398,7 +408,6 @@
             }
         }
 
-        // Populates both the custom Legend section block and builds the small scale square profile graph
         function renderCumulativeComparisonChart() {
             const rainKeys = Object.keys(rainDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
             
@@ -448,7 +457,6 @@
                     fill: false
                 });
 
-                // Generate a custom HTML legend item inside the Legend Section
                 const legendItem = document.createElement('div');
                 legendItem.style.display = 'flex';
                 legendItem.style.alignItems = 'center';
@@ -505,8 +513,71 @@
                         }
                     },
                     plugins: { 
-                        legend: { display: false }, // Hidden here because the custom panel above covers it elegantly
+                        legend: { display: false }, 
                         tooltip: { mode: 'index', intersect: false } 
+                    }
+                }
+            });
+        }
+
+        function renderScatterCorrelationChart() {
+            if (!activeFdvKey || !fdvDatabase[activeFdvKey]) {
+                scatterPane.style.display = 'none';
+                if (charts.scatter) { charts.scatter.destroy(); charts.scatter = null; }
+                return;
+            }
+
+            scatterPane.style.display = 'block';
+            const fdvData = fdvDatabase[activeFdvKey];
+            
+            // Re-map parallel arrays into coordinate sets: { x: Depth, y: Velocity }
+            const coordinatePairs = [];
+            for (let i = 0; i < fdvData.depth.length; i++) {
+                coordinatePairs.push({
+                    x: fdvData.depth[i],
+                    y: fdvData.velocity[i]
+                });
+            }
+
+            const ctx = document.getElementById('scatterChart').getContext('2d');
+            if (charts.scatter) charts.scatter.destroy();
+
+            charts.scatter = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: activeFdvKey,
+                        data: coordinatePairs,
+                        backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                        borderColor: '#10b981',
+                        pointRadius: 2.5,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: { color: '#334155', font: { size: 9 } },
+                            title: { display: true, text: 'Depth (MM)', font: { weight: 'bold', size: 10 } }
+                        },
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: { color: '#334155', font: { size: 9 } },
+                            title: { display: true, text: 'Velocity (M/S)', font: { weight: 'bold', size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Depth: ${context.parsed.x} mm | Vel: ${context.parsed.y} m/s`;
+                                }
+                            }
+                        }
                     }
                 }
             });
