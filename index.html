@@ -433,8 +433,9 @@
             
             const fdvData = fdvDatabase[fdvKey];
             const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
-            // Render explicit structural combination string directly inside red header title
-            activeMonitorHeader.textContent = `${cleanDisplayLabel} - ${fdvData.pipeSize}`;
+            
+            // Simplified here: Displays only the Monitor ID as the clean visual header layout
+            activeMonitorHeader.textContent = cleanDisplayLabel;
             activeMonitorHeader.style.display = 'block';
 
             if (monitorSelector.value !== fdvKey) {
