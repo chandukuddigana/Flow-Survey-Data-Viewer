@@ -3,91 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High-Performance Flow Survey Viewer</title>
+    <title>Instant Flow Survey Streamer</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 30px; color: #333; background-color: #fcfcfc; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 25px; color: #333; background-color: #f8f9fa; }
         .container { max-width: 1400px; margin: 0 auto; }
         .upload-zone { border: 2px dashed #0066cc; padding: 25px; text-align: center; background: #fff; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         #fileInput { display: none; }
         .btn { background: #0066cc; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; display: inline-block; font-weight: bold; }
-        .status { margin-top: 10px; color: #444; font-weight: 600; font-size: 15px; }
+        .status { margin-top: 10px; color: #111; font-weight: 600; font-size: 15px; }
         
-        /* Virtual Scroll viewport configuration */
-        .viewport-wrapper { 
-            position: relative;
-            border: 1px solid #ccc; 
-            border-radius: 6px; 
-            background: #fff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            overflow: hidden;
+        /* The High-Speed Viewport Container */
+        .viewer-box {
+            display: none;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            overflow: auto;
+            max-height: 700px;
+            white-space: pre;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 13px;
+            line-height: 1.5;
         }
-        .header-sticky-container {
-            overflow-x: hidden;
-            background: #f4f4f4;
-            border-bottom: 2px solid #ddd;
-        }
-        .scroll-container { 
-            overflow-y: auto; 
-            overflow-x: auto; 
-            max-height: 650px; 
-            position: relative;
-        }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed; }
-        th, td { padding: 8px 12px; border-bottom: 1px solid #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        th { background-color: #f4f4f4; font-weight: bold; color: #111; }
-        tr:hover { background-color: #f7fafd; }
-        .total-counter { margin-top: 8px; font-size: 12px; color: #666; text-align: right; }
+        .file-info { margin-bottom: 10px; font-size: 12px; color: #666; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Flow Survey Grid Viewer <span style="font-size:14px; font-weight:normal; color:#666;">(Virtual Matrix Edition)</span></h2>
+        <h2>Flow Survey Data Streamer</h2>
         
         <div class="upload-zone" id="dropZone">
-            <label for="fileInput" class="btn">Select Flow File</label>
+            <label for="fileInput" class="btn">Select Data File</label>
             <input type="file" id="fileInput" accept=".xlsx, .xls, .fdv, .txt, .csv">
             <p style="margin: 8px 0 0 0; color: #555;">or drop your dataset here</p>
-            <div id="status" class="status">Awaiting data input...</div>
+            <div id="status" class="status">Ready for file...</div>
         </div>
 
-        <div class="viewport-wrapper" id="viewerWrapper" style="display:none;">
-            <div class="header-sticky-container">
-                <table id="headerTable">
-                    <thead><tr id="tableHeader"></tr></thead>
-                </table>
-            </div>
-            <div class="scroll-container" id="scrollContainer">
-                <!-- Spacers dynamically trick the browser scrollbar length -->
-                <div id="topSpacer"></div>
-                <table id="dataTable">
-                    <tbody id="tableBody"></tbody>
-                </table>
-                <div id="bottomSpacer"></div>
-            </div>
-        </div>
-        <div id="totalCounter" class="total-counter"></div>
+        <div id="fileInfo" class="file-info"></div>
+        <pre class="viewer-box" id="viewerBox"></pre>
     </div>
 
     <script>
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('dropZone');
         const statusDiv = document.getElementById('status');
-        const scrollContainer = document.getElementById('scrollContainer');
-        const tableBody = document.getElementById('tableBody');
-        const tableHeader = document.getElementById('tableHeader');
-        const viewerWrapper = document.getElementById('viewerWrapper');
-        const topSpacer = document.getElementById('topSpacer');
-        const bottomSpacer = document.getElementById('bottomSpacer');
-        const totalCounter = document.getElementById('totalCounter');
-
-        // State storage for dataset mapping
-        let globalData = [];
-        let globalHeaders = [];
-        let dataStartIndex = 0;
-        const ROW_HEIGHT = 33; // Fixed pixel height matching row style dimensions
-        const VISIBLE_COUNT = 30; // Active rows kept in view window boundaries
+        const viewerBox = document.getElementById('viewerBox');
+        const fileInfo = document.getElementById('fileInfo');
 
         fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#0044aa'; });
@@ -97,22 +61,31 @@
             if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
         });
 
-        // Sync header table x-axis layout scroll window parameters
-        scrollContainer.addEventListener('scroll', () => {
-            document.getElementById('headerTable').style.transform = `translateX(-${scrollContainer.scrollLeft}px)`;
-            renderVirtualRows();
-        });
-
         function handleFile(file) {
             if (!file) return;
-            statusDiv.textContent = `Streaming file array streams into local sandbox...`;
+            statusDiv.textContent = `Streaming file layout...`;
+            viewerBox.style.display = 'none';
+            fileInfo.textContent = `File Name: ${file.name} | Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+
             const extension = file.name.split('.').pop().toLowerCase();
 
             if (extension === 'xlsx' || extension === 'xls') {
                 parseExcel(file);
             } else {
-                parseText(file);
+                // Read FDV/CSV/TXT lightning-fast as a single block of raw text lines
+                parseAsRawBlock(file);
             }
+        }
+
+        function parseAsRawBlock(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Inject the entire file content directly into the text window with zero looping overhead
+                viewerBox.textContent = e.target.result;
+                viewerBox.style.display = 'block';
+                statusDiv.textContent = `File loaded instantly!`;
+            };
+            reader.readAsText(file);
         }
 
         function parseExcel(file) {
@@ -121,96 +94,15 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-                processParsedOutput(jsonData);
+                
+                // Convert Excel cells cleanly to a text matrix string
+                const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
+                
+                viewerBox.textContent = csvOutput;
+                viewerBox.style.display = 'block';
+                statusDiv.textContent = `Excel sheets converted and loaded!`;
             };
             reader.readAsArrayBuffer(file);
-        }
-
-        function parseText(file) {
-            Papa.parse(file, {
-                complete: function(results) {
-                    processParsedOutput(results.data);
-                },
-                skipEmptyLines: 'greedy'
-            });
-        }
-
-        function processParsedOutput(data) {
-            if (!data || data.length === 0) {
-                statusDiv.textContent = "Error: Dataset blank.";
-                return;
-            }
-
-            // Isolate header row position matching operational metrics
-            let headerIndex = 0;
-            for(let i = 0; i < Math.min(data.length, 15); i++) {
-                if((data[i] || []).filter(Boolean).length > (data[headerIndex] || []).filter(Boolean).length) {
-                    headerIndex = i;
-                }
-            }
-
-            globalHeaders = data[headerIndex] || [];
-            // Slice actual values past structural log markers
-            globalData = data.slice(headerIndex + 1).filter(row => row && row.length > 0);
-            dataStartIndex = headerIndex;
-
-            buildHeaders();
-            
-            // Reconfigure spacer track limits matching target canvas scale
-            const totalHeight = globalData.length * ROW_HEIGHT;
-            scrollContainer.scrollTop = 0;
-            
-            viewerWrapper.style.display = 'block';
-            statusDiv.textContent = `Complete! All entries parsed cleanly.`;
-            totalCounter.textContent = `Total Dataset Array Size: ${globalData.length.toLocaleString()} records populated.`;
-            
-            renderVirtualRows();
-        }
-
-        function buildHeaders() {
-            tableHeader.innerHTML = '';
-            globalHeaders.forEach(col => {
-                const th = document.createElement('th');
-                th.textContent = col !== undefined ? col : '';
-                tableHeader.appendChild(th);
-            });
-        }
-
-        function renderVirtualRows() {
-            const scrollTop = scrollContainer.scrollTop;
-            
-            // Calculate slice metrics matching coordinates
-            let startIdx = Math.floor(scrollTop / ROW_HEIGHT) - 5;
-            startIdx = Math.max(0, startIdx);
-            
-            let endIdx = startIdx + VISIBLE_COUNT + 10;
-            endIdx = Math.min(globalData.length, endIdx);
-
-            // Redraw row offsets
-            const paddingTop = startIdx * ROW_HEIGHT;
-            const paddingBottom = (globalData.length - endIdx) * ROW_HEIGHT;
-
-            topSpacer.style.height = `${paddingTop}px`;
-            bottomSpacer.style.height = `${paddingBottom}px`;
-
-            // Fragment construction loop
-            const fragment = document.createDocumentFragment();
-            for (let i = startIdx; i < endIdx; i++) {
-                const rowData = globalData[i];
-                const tr = document.createElement('tr');
-                tr.style.height = `${ROW_HEIGHT}px`;
-
-                for (let j = 0; j < globalHeaders.length; j++) {
-                    const td = document.createElement('td');
-                    td.textContent = rowData[j] !== undefined ? rowData[j] : '';
-                    tr.appendChild(td);
-                }
-                fragment.appendChild(tr);
-            }
-
-            tableBody.innerHTML = '';
-            tableBody.appendChild(fragment);
         }
     </script>
 </body>
