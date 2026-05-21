@@ -41,7 +41,9 @@
         .workspace-view { display: none; padding: 20px 25px; }
         .graph-pane { background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); height: 185px; position: relative; }
         .graph-pane.rain-pane { border-top: 4px solid #1e3a8a; background: #eff6ff; height: 135px; display: none; }
-        .graph-pane.cumulative-pane { border-top: 4px solid #1e3a8a; background: #fff; height: 210px; }
+        
+        /* COMPACT SCALE: Reduced height layout optimized for bottom-screen tracking */
+        .graph-pane.cumulative-pane { border-top: 4px solid #1e3a8a; background: #fff; height: 125px; }
         
         h3 { margin: 0 0 8px 0; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
         .rain-pane h3 { color: #1e3a8a; }
@@ -93,11 +95,6 @@
                 <h3>Precipitation Inflow Hyetograph (MM)</h3>
                 <canvas id="rainChart"></canvas>
             </div>
-
-            <div class="graph-pane cumulative-pane" id="cumulativePane" style="display: none;">
-                <h3>Cumulative Rainfall Comparison (MM) - All Loaded Gauges</h3>
-                <canvas id="cumulativeChart"></canvas>
-            </div>
             
             <div id="hydraulicChartsWrapper" style="display: none;">
                 <div class="graph-pane">
@@ -112,6 +109,11 @@
                     <h3>Mean Velocity Profile (M/S)</h3>
                     <canvas id="velocityChart"></canvas>
                 </div>
+            </div>
+
+            <div class="graph-pane cumulative-pane" id="cumulativePane" style="display: none;">
+                <h3>Cumulative Rainfall Comparison (MM) - All Loaded Gauges</h3>
+                <canvas id="cumulativeChart"></canvas>
             </div>
         </div>
     </div>
@@ -135,7 +137,6 @@
         let activeFdvKey = null;
         let charts = { rain: null, cumulative: null, flow: null, depth: null, velocity: null };
         
-        // Custom palette for high contrast rainfall multi-line displays (Navy base variant steps)
         const lineColorsPalette = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#1d4ed8', '#1e40af', '#3a57e8'];
 
         const preventDefaults = (e) => { e.preventDefault(); e.stopPropagation(); };
@@ -179,7 +180,6 @@
                     if (filesProcessed === files.length) {
                         const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
                         
-                        // Set active fallback if available
                         if (sortedFdvKeys.length > 0 && (!activeFdvKey || !fdvDatabase[activeFdvKey])) {
                             activeFdvKey = sortedFdvKeys[0];
                         }
@@ -187,7 +187,6 @@
                         rebuildInventoriesUI();
                         populateRainDropdown();
                         
-                        // Make the canvas workspace visible if ANY relevant file was parsed
                         if (Object.keys(fdvDatabase).length > 0 || Object.keys(rainDatabase).length > 0) {
                             workspaceView.style.display = 'block';
                             controlBar.style.display = 'flex';
@@ -196,7 +195,6 @@
                         if (activeFdvKey) {
                             switchToFilePage(activeFdvKey);
                         } else {
-                            // If only rain files are uploaded, display the cumulative comparison chart directly
                             activeViewTitle.textContent = `Rainfall Analysis Deck`;
                             globalStatus.textContent = `Precipitation pools loaded.`;
                             hydraulicChartsWrapper.style.display = 'none';
@@ -371,7 +369,6 @@
             }
         }
 
-        // Improved Cumulative Chart Generator that builds its own timeline fallback if no FDV is active
         function renderCumulativeComparisonChart() {
             const rainKeys = Object.keys(rainDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
             
@@ -383,12 +380,10 @@
 
             cumulativePane.style.display = 'block';
             
-            // Determine our primary display timeline labels
             let targetLabels = [];
             if (activeFdvKey && fdvDatabase[activeFdvKey]) {
                 targetLabels = fdvDatabase[activeFdvKey].labels;
             } else if (rainDatabase[rainKeys[0]]) {
-                // Fallback directly to the first gauge file's own timeline if no FDV profile is active
                 targetLabels = rainDatabase[rainKeys[0]].labels;
             }
 
@@ -414,7 +409,7 @@
                     data: cumulativeValues,
                     borderColor: color,
                     backgroundColor: 'transparent',
-                    borderWidth: 2.5,
+                    borderWidth: 2,
                     pointRadius: 0,
                     tension: 0.1,
                     fill: false
@@ -434,18 +429,18 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: { grid: { display: false }, ticks: { maxTicksLimit: 12, color: '#64748b', font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 12, color: '#64748b', font: { size: 9 } } },
                         y: { 
                             grid: { color: '#f1f5f9' }, 
-                            ticks: { color: '#334155', font: { size: 11 } }, 
-                            title: { display: true, text: 'Cumulative Rain (MM)', font: { weight: 'bold', size: 11, color: '#1e3a8a' } }
+                            ticks: { color: '#334155', font: { size: 10 } }, 
+                            title: { display: true, text: 'Total (MM)', font: { weight: 'bold', size: 10 } }
                         }
                     },
                     plugins: { 
                         legend: { 
                             display: true, 
-                            position: 'top',
-                            labels: { boxWidth: 12, font: { size: 11, weight: 'bold' }, color: '#334155' }
+                            position: 'right', // Relocating legend to the side preserves vertical breathing room
+                            labels: { boxWidth: 10, font: { size: 10, weight: 'bold' }, color: '#334155' }
                         }, 
                         tooltip: { mode: 'index', intersect: false } 
                     }
