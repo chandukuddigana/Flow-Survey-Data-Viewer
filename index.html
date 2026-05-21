@@ -6,27 +6,15 @@
     <title>Flow Survey Data Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #222; background-color: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #222; background-color: #f8fafc; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* Collapsible Master Sidebar Workspace Panel */
-        .sidebar { width: 45px; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; border-right: 1px solid #1e293b; flex-shrink: 0; transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; position: relative; overflow: hidden; }
-        .sidebar:hover { width: 280px; }
-        
-        .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #1e293b; white-space: nowrap; height: 20px; }
-        .sidebar-header h2 { margin: 0; font-size: 14px; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        .file-list { flex: 1; overflow-y: auto; padding: 15px 10px; width: 260px; }
-        .list-section-title { font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase; margin: 15px 0 5px 5px; letter-spacing: 0.5px; }
-        .list-container { margin-bottom: 20px; }
-        
-        .station-item { padding: 10px 12px; margin-bottom: 6px; border-radius: 6px; background: #1e293b; cursor: pointer; font-size: 13px; border: 1px solid #334155; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .station-item:hover { background: #334155; }
-        .station-item.active { background: #22c55e; border-color: #4ade80; color: #fff; font-weight: bold; }
-
         /* Main Workspace Content Arena */
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100%; min-width: 0; }
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100%; min-width: 0; padding: 0; }
         .top-banner { background: #fff; padding: 10px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; min-height: 20px; }
         
+        /* Large Bold Red Active Monitor Header */
+        .active-monitor-header { font-size: 24px; font-weight: 800; color: #ef4444; margin: 0 0 15px 5px; text-transform: uppercase; letter-spacing: 0.5px; display: none; }
+
         /* Clickable Drop Zone area */
         .upload-zone { border: 2px dashed #38bdf8; padding: 35px 25px; text-align: center; background: #fff; border-radius: 8px; margin: 25px; cursor: pointer; transition: background 0.15s ease-in-out; flex-shrink: 0; }
         .upload-zone:hover { background: #f0f9ff; border-color: #0284c7; }
@@ -40,7 +28,7 @@
         .rain-selector, .monitor-selector { padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 13px; font-weight: 600; color: #0f172a; outline: none; cursor: pointer; width: 100%; box-sizing: border-box; }
         .rain-selector:hover, .monitor-selector:hover { border-color: #94a3b8; }
 
-        /* LAYOUT GRID SYSTEM */
+        /* LAYOUT GRID SYSTEM WITH MAXIMUM WIDTH */
         .workspace-view { display: none; padding: 25px; box-sizing: border-box; width: 100%; }
         .workspace-layout { display: flex; gap: 25px; align-items: flex-start; }
         
@@ -71,18 +59,6 @@
 </head>
 <body>
 
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h2>Flow Survey Data Viewer</h2>
-        </div>
-        <div class="file-list">
-            <div class="list-section-title">Select Monitor</div>
-            <div class="list-container" id="fdvListContainer">
-                <div style="color: #64748b; font-size: 12px; padding: 5px; font-style: italic;">No monitors loaded</div>
-            </div>
-        </div>
-    </div>
-
     <div class="main-content">
         <div class="top-banner"></div>
         
@@ -94,6 +70,9 @@
         </div>
 
         <div class="workspace-view" id="workspaceView">
+            
+            <div class="active-monitor-header" id="activeMonitorHeader">Selected Monitor: None</div>
+
             <div class="workspace-layout">
                 
                 <div class="graph-section-column">
@@ -209,8 +188,8 @@
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('dropZone');
         const statusDiv = document.getElementById('status');
-        const fdvListContainer = document.getElementById('fdvListContainer');
         const workspaceView = document.getElementById('workspaceView');
+        const activeMonitorHeader = document.getElementById('activeMonitorHeader');
         const hydraulicChartsWrapper = document.getElementById('hydraulicChartsWrapper');
         const cumulativePane = document.getElementById('cumulativePane');
         const scatterPane = document.getElementById('scatterPane');
@@ -273,7 +252,6 @@
                             activeFdvKey = sortedFdvKeys[0];
                         }
 
-                        rebuildInventoriesUI();
                         populateMonitorDropdown();
                         populateRainDropdown();
                         
@@ -286,6 +264,7 @@
                         if (activeFdvKey) {
                             switchToFilePage(activeFdvKey);
                         } else {
+                            activeMonitorHeader.style.display = 'none';
                             hydraulicChartsWrapper.style.display = 'none';
                             scatterPane.style.display = 'none';
                             updateRainfallChartTrack();
@@ -389,23 +368,6 @@
             return `${day} ${month} ${year} ${hh}:${mm}`;
         }
 
-        function rebuildInventoriesUI() {
-            fdvListContainer.innerHTML = '';
-            const fdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-            if (fdvKeys.length === 0) {
-                fdvListContainer.innerHTML = '<div style="color: #64748b; font-size: 12px; padding: 5px; font-style: italic;">No monitors loaded</div>';
-            } else {
-                fdvKeys.forEach(key => {
-                    const div = document.createElement('div');
-                    const cleanDisplayLabel = key.replace(/\.[fF][dD][vV]$/, '');
-                    div.className = `station-item ${key === activeFdvKey ? 'active' : ''}`;
-                    div.textContent = cleanDisplayLabel;
-                    div.onclick = (e) => { e.stopPropagation(); switchToFilePage(key); };
-                    fdvListContainer.appendChild(div);
-                });
-            }
-        }
-
         function populateMonitorDropdown() {
             monitorSelector.innerHTML = '<option value="">-- No Monitor Station Selected --</option>';
             const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
@@ -457,10 +419,9 @@
             
             const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
             
-            document.querySelectorAll('.station-item').forEach(item => {
-                if (item.textContent === cleanDisplayLabel) item.classList.add('active');
-                else item.classList.remove('active');
-            });
+            // Render Active Header Target Profile Text
+            activeMonitorHeader.textContent = `Selected Monitor: ${cleanDisplayLabel}`;
+            activeMonitorHeader.style.display = 'block';
 
             if (monitorSelector.value !== fdvKey) {
                 monitorSelector.value = fdvKey;
