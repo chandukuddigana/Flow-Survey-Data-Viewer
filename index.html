@@ -280,33 +280,41 @@
         function processFdvFile(text) {
             const lines = text.split(/\r?\n/);
             let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
-            let pipeSize = "Unknown";
+            let pipeSize = "";
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
                 
-                // Track down metadata configurations inside headers
-                if (line.toUpperCase().includes('SIZE') || line.toUpperCase().includes('PIPE') || line.toUpperCase().includes('DIAMETER')) {
-                    const numericMatches = line.match(/\d+/);
-                    if (numericMatches) {
-                        pipeSize = numericMatches[0] + "mm";
+                if (line.startsWith('*CSTART')) {
+                    // Line directly beneath *CSTART is line index i+1 (Timestamp and interval details)
+                    let paramLine1 = lines[i+1] ? lines[i+1].trim() : "";
+                    let match = paramLine1.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
+                    if (match) { 
+                        startTimeStr = match[1]; 
+                        intervalMinutes = parseInt(match[2]); 
+                    }
+
+                    // Line immediately beneath the configuration metadata parameters is line index i+2
+                    // This is where standard pipe diameter configuration specifications reside
+                    let configLine = lines[i+2] ? lines[i+2].trim() : "";
+                    if (configLine) {
+                        // Extract any numerical values from this target line entry
+                        let sizeMatch = configLine.match(/\d+/);
+                        if (sizeMatch) {
+                            pipeSize = sizeMatch[0] + "mm";
+                        }
                     }
                 }
                 
-                if (line.startsWith('*CSTART')) {
-                    let paramLine2 = "";
-                    for(let k=1; k<5; k++) {
-                        if(lines[i+k] && lines[i+k].trim().match(/^\d{10}/)) { paramLine2 = lines[i+k].trim(); break; }
-                    }
-                    let match = paramLine2.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
-                    if (match) { startTimeStr = match[1]; intervalMinutes = parseInt(match[2]); }
-                }
                 if (line.startsWith('*CEND')) { inData = true; continue; }
                 if (inData) {
                     line.split(/\s+/).forEach(t => { let v = parseFloat(t); if (!isNaN(v)) rawValues.push(v); });
                 }
             }
+            
+            if (!pipeSize) pipeSize = "Unknown Size";
+
             if (rawValues.length < 3) return null;
             let baseDate = parseYYMMDDHHMM(startTimeStr);
             const labels = [], flow = [], depth = [], velocity = [];
@@ -327,10 +335,7 @@
                 const line = lines[i].trim();
                 if (!line) continue;
                 if (line.startsWith('*CSTART')) {
-                    let paramLine2 = "";
-                    for(let k=1; k<5; k++) {
-                        if(lines[i+k] && lines[i+k].trim().match(/^\d{10}/)) { paramLine2 = lines[i+k].trim(); break; }
-                    }
+                    let paramLine2 = lines[i+1] ? lines[i+1].trim() : "";
                     let match = paramLine2.match(/^(\d{10})\s+\d{10}\s+(\d+)/);
                     if (match) { startTimeStr = match[1]; intervalMinutes = parseInt(match[2]); }
                 }
@@ -431,7 +436,7 @@
             const fdvData = fdvDatabase[fdvKey];
             const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
             
-            // Build and display simplified center title with pipe size metric context
+            // Render explicit structural combination string
             activeMonitorHeader.textContent = `${cleanDisplayLabel} - ${fdvData.pipeSize}`;
             activeMonitorHeader.style.display = 'block';
 
@@ -568,7 +573,7 @@
         function renderScatterCorrelationChart() {
             if (!activeFdvKey || !fdvDatabase[activeFdvKey]) {
                 scatterPane.style.display = 'none';
-                if (charts.scatter) { charts.scatter.destroy(); charts.scatter = null; }
+                if (charts.scatter) {charts.scatter.destroy(); charts.scatter = null;}
                 return;
             }
 
