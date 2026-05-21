@@ -3,55 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instant Flow Survey Streamer</title>
+    <title>High-Speed Flow Survey Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 25px; color: #333; background-color: #f8f9fa; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .upload-zone { border: 2px dashed #0066cc; padding: 25px; text-align: center; background: #fff; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 30px; color: #333; background-color: #fcfcfc; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .upload-zone { border: 2px dashed #0066cc; padding: 30px; text-align: center; background: #fff; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         #fileInput { display: none; }
         .btn { background: #0066cc; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; display: inline-block; font-weight: bold; }
         .status { margin-top: 10px; color: #111; font-weight: 600; font-size: 15px; }
         
-        /* The High-Speed Viewport Container */
-        .viewer-box {
+        /* High-speed monospace view frame */
+        .output-frame {
             display: none;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 15px;
+            background: #ffffff;
+            color: #222;
+            padding: 20px;
+            border: 1px solid #ccc;
             border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             overflow: auto;
-            max-height: 700px;
+            max-height: 650px;
             white-space: pre;
             font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
             font-size: 13px;
-            line-height: 1.5;
+            line-height: 1.6;
         }
-        .file-info { margin-bottom: 10px; font-size: 12px; color: #666; }
+        .meta-info { font-size: 12px; color: #666; margin-bottom: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Flow Survey Data Streamer</h2>
+        <h2>Flow Survey Data Viewer <span style="font-size:14px; font-weight:normal; color:#666;">(High-Speed Matrix)</span></h2>
         
         <div class="upload-zone" id="dropZone">
-            <label for="fileInput" class="btn">Select Data File</label>
+            <label for="fileInput" class="btn">Select Flow File</label>
             <input type="file" id="fileInput" accept=".xlsx, .xls, .fdv, .txt, .csv">
             <p style="margin: 8px 0 0 0; color: #555;">or drop your dataset here</p>
-            <div id="status" class="status">Ready for file...</div>
+            <div id="status" class="status">Awaiting data input...</div>
         </div>
 
-        <div id="fileInfo" class="file-info"></div>
-        <pre class="viewer-box" id="viewerBox"></pre>
+        <div id="metaInfo" class="meta-info"></div>
+        <pre class="output-frame" id="outputFrame"></pre>
     </div>
 
     <script>
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('dropZone');
         const statusDiv = document.getElementById('status');
-        const viewerBox = document.getElementById('viewerBox');
-        const fileInfo = document.getElementById('fileInfo');
+        const outputFrame = document.getElementById('outputFrame');
+        const metaInfo = document.getElementById('metaInfo');
 
         fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#0044aa'; });
@@ -63,27 +64,48 @@
 
         function handleFile(file) {
             if (!file) return;
-            statusDiv.textContent = `Streaming file layout...`;
-            viewerBox.style.display = 'none';
-            fileInfo.textContent = `File Name: ${file.name} | Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+            statusDiv.textContent = `Streaming file arrays into viewer matrix...`;
+            outputFrame.style.display = 'none';
+            metaInfo.textContent = `Processing: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
 
             const extension = file.name.split('.').pop().toLowerCase();
 
             if (extension === 'xlsx' || extension === 'xls') {
                 parseExcel(file);
             } else {
-                // Read FDV/CSV/TXT lightning-fast as a single block of raw text lines
-                parseAsRawBlock(file);
+                parseFlowText(file);
             }
         }
 
-        function parseAsRawBlock(file) {
+        function parseFlowText(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                // Inject the entire file content directly into the text window with zero looping overhead
-                viewerBox.textContent = e.target.result;
-                viewerBox.style.display = 'block';
-                statusDiv.textContent = `File loaded instantly!`;
+                const text = e.target.result;
+                const lines = text.split(/\r?\n/);
+                let cleanedOutput = [];
+                let trackingData = false;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    // Automatically skip system blocks or empty setups until actual headers appear
+                    // (Matches common flow logs starting with Date, Time, Log, or Site identifiers)
+                    if (!trackingData && (line.toLowerCase().includes('date') || line.toLowerCase().includes('time') || line.match(/^[0-9]/))) {
+                        trackingData = true;
+                    }
+
+                    if (trackingData) {
+                        // Clean up quotes and unify gaps into neat tabs for uniform columns
+                        let formattedLine = line.replace(/['"]/g, '').replace(/\s+/g, '\t');
+                        cleanedOutput.push(formattedLine);
+                    }
+                }
+
+                outputFrame.textContent = cleanedOutput.join('\n');
+                outputFrame.style.display = 'block';
+                statusDiv.textContent = `Loaded successfully!`;
+                metaInfo.textContent += ` | Total Rows Rendered: ${cleanedOutput.length.toLocaleString()}`;
             };
             reader.readAsText(file);
         }
@@ -95,12 +117,12 @@
                 const workbook = XLSX.read(data, { type: 'array' });
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 
-                // Convert Excel cells cleanly to a text matrix string
-                const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
+                // Convert Excel cells quickly to tabular layout using tab delimiters
+                const textMatrix = XLSX.utils.sheet_to_txt(worksheet);
                 
-                viewerBox.textContent = csvOutput;
-                viewerBox.style.display = 'block';
-                statusDiv.textContent = `Excel sheets converted and loaded!`;
+                outputFrame.textContent = textMatrix;
+                outputFrame.style.display = 'block';
+                statusDiv.textContent = `Excel sheets parsed successfully!`;
             };
             reader.readAsArrayBuffer(file);
         }
