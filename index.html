@@ -45,12 +45,13 @@
         .graph-section-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .auxiliary-section-column { width: 340px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; }
 
-        .graph-pane { background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); height: 185px; position: relative; }
-        .graph-pane.rain-pane { border-top: 4px solid #1e3a8a; background: #eff6ff; height: 135px; display: none; }
+        /* Expanded heights slightly to avoid clipping labels on borders */
+        .graph-pane { background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); height: 195px; position: relative; }
+        .graph-pane.rain-pane { border-top: 4px solid #1e3a8a; background: #eff6ff; height: 145px; display: none; }
         
         .graph-pane.legend-pane { border-top: 4px solid #f59e0b; height: auto; margin-bottom: 0; }
-        .graph-pane.cumulative-pane { border-top: 4px solid #3b82f6; height: 210px; margin-bottom: 0; }
-        .graph-pane.scatter-pane { border-top: 4px solid #ef4444; height: 210px; margin-bottom: 0; }
+        .graph-pane.cumulative-pane { border-top: 4px solid #3b82f6; height: 220px; margin-bottom: 0; }
+        .graph-pane.scatter-pane { border-top: 4px solid #ef4444; height: 230px; margin-bottom: 0; }
         
         h3 { margin: 0 0 8px 0; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
         .rain-pane h3 { color: #1e3a8a; }
@@ -264,7 +265,6 @@
                     if (contentText.includes('FIELD: 1,RAIN') || fileNameUpper.endsWith('.R')) {
                         const parsedRain = processRainFile(contentText);
                         if (parsedRain) {
-                            // Strip .R / .r extension from internal tracking keys
                             let cleanKey = file.name.replace(/\.[rR]$/, '');
                             rainDatabase[cleanKey] = parsedRain;
                         }
@@ -411,7 +411,7 @@
                 rainKeys.forEach(key => {
                     const div = document.createElement('div');
                     div.className = 'rain-inventory-item';
-                    div.textContent = `☔ ${key}`; // Clean key automatically without extensions
+                    div.textContent = `☔ ${key}`;
                     rainInventoryContainer.appendChild(div);
                 });
             }
@@ -574,6 +574,10 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        // Added padding to prevent the x-axis dates from hitting the box border
+                        padding: { bottom: 20 }
+                    },
                     scales: {
                         x: { 
                             grid: { display: false }, 
@@ -641,11 +645,21 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        // Creates layout buffer at bottom to clear the title
+                        padding: { bottom: 15 }
+                    },
                     scales: {
                         x: {
                             grid: { color: '#f1f5f9' },
                             ticks: { color: '#334155', font: { size: 9 } },
-                            title: { display: true, text: 'Velocity (M/S)', font: { weight: 'bold', size: 10 } }
+                            title: { 
+                                display: true, 
+                                text: 'Velocity (M/S)', 
+                                font: { weight: 'bold', size: 10 },
+                                // Pushes title downwards slightly inside the layout padding boundary
+                                padding: { top: 10 } 
+                            }
                         },
                         y: {
                             grid: { color: '#f1f5f9' },
@@ -759,6 +773,10 @@
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
+                    layout: {
+                        // Added padding to prevent the x-axis dates from hitting the box border
+                        padding: { bottom: 20 }
+                    },
                     scales: {
                         x: { 
                             grid: { display: false }, 
@@ -766,7 +784,6 @@
                                 maxTicksLimit: 12, 
                                 color: '#64748b', 
                                 font: { size: 10 },
-                                // Ticks Callback turns "21 May 19:30" into "21 May" on the axis line layout
                                 callback: function(value) {
                                     let lbl = this.getLabelForValue(value);
                                     if (lbl && typeof lbl === 'string') {
