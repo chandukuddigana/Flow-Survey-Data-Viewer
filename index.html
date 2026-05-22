@@ -494,75 +494,135 @@ function processFdvFile(contentText, fileName){
         const lines =
             contentText.split(/\r?\n/);
 
-        let timestamps = [];
-        let depth = [];
+        let startDate = null;
+        let endDate = null;
+        let intervalMinutes = 2;
+
+        let insideConstants = false;
+        let insideData = false;
+
         let flow = [];
+        let depth = [];
         let velocity = [];
 
         for(let line of lines){
 
-            const clean =
-                line.trim();
+            const clean = line.trim();
 
-            if(!clean){
+            if(clean.includes('*CSTART')){
+                insideConstants = true;
                 continue;
             }
 
-            const nums =
-                clean.match(/-?\d+\.?\d*/g);
-
-            if(!nums){
+            if(clean.includes('*CEND')){
+                insideConstants = false;
+                insideData = true;
                 continue;
             }
 
-            if(nums.length >= 4){
+            /* =========================================
+               CONSTANTS SECTION
+            ========================================= */
 
-                const dateStr =
-                    nums[0];
+            if(insideConstants){
 
-                if(dateStr.length === 10){
+                const match =
+                    clean.match(
+                        /(\d{10})\s+(\d{10})\s+(\d+)/
+                    );
 
-                    const dt =
-                        parseTelemetryDate(dateStr);
+                if(match){
 
-                    if(dt){
+                    startDate =
+                        parseTelemetryDate(match[1]);
 
-                        timestamps.push(dt);
+                    endDate =
+                        parseTelemetryDate(match[2]);
 
-                        depth.push(
-                            parseFloat(nums[1])
-                        );
+                    intervalMinutes =
+                        parseInt(match[3]);
+                }
+            }
 
-                        flow.push(
-                            parseFloat(nums[2])
-                        );
+            /* =========================================
+               DATA SECTION
+            ========================================= */
 
-                        velocity.push(
-                            parseFloat(nums[3])
-                        );
+            else if(insideData){
+
+                const nums =
+                    clean.match(/-?\d+\.?\d*/g);
+
+                if(nums){
+
+                    /*
+                        FDV FORMAT:
+                        FLOW DEPTH VELOCITY
+                    */
+
+                    for(let i=0;i<nums.length;i+=3){
+
+                        if(i + 2 < nums.length){
+
+                            flow.push(
+                                parseFloat(nums[i])
+                            );
+
+                            depth.push(
+                                parseFloat(nums[i+1])
+                            );
+
+                            velocity.push(
+                                parseFloat(nums[i+2])
+                            );
+                        }
                     }
                 }
             }
         }
 
-        if(timestamps.length === 0){
+        /* =========================================
+           VALIDATION
+        ========================================= */
+
+        if(!startDate){
 
             console.error(
-                `No FDV telemetry found in ${fileName}`
+                `FDV start date not found in ${fileName}`
             );
 
             return null;
         }
 
-        let intervalMinutes = 2;
+        if(flow.length === 0){
 
-        if(timestamps.length >= 2){
+            console.error(
+                `No telemetry rows found in ${fileName}`
+            );
 
-            intervalMinutes =
-                (
-                    timestamps[1].getTime() -
-                    timestamps[0].getTime()
-                ) / (60*1000);
+            return null;
+        }
+
+        /* =========================================
+           BUILD TIMESTAMPS
+        ========================================= */
+
+        const timestamps = [];
+
+        const intervalMs =
+            intervalMinutes *
+            60 *
+            1000;
+
+        for(let i=0;i<flow.length;i++){
+
+            timestamps.push(
+
+                new Date(
+                    startDate.getTime() +
+                    i * intervalMs
+                )
+            );
         }
 
         return {
@@ -571,9 +631,9 @@ function processFdvFile(contentText, fileName){
 
             timestamps,
 
-            depth,
-
             flow,
+
+            depth,
 
             velocity,
 
@@ -582,7 +642,10 @@ function processFdvFile(contentText, fileName){
 
     } catch(err){
 
-        console.error(err);
+        console.error(
+            'FDV parser error:',
+            err
+        );
 
         return null;
     }
