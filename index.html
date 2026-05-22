@@ -21,10 +21,6 @@ body{
     overflow-x:hidden;
 }
 
-/* =========================================================
-   TOP BAR
-========================================================= */
-
 .top-banner{
     background:white;
     border-bottom:1px solid #dbe3ec;
@@ -32,10 +28,6 @@ body{
     font-size:18px;
     font-weight:700;
 }
-
-/* =========================================================
-   UPLOAD ZONE
-========================================================= */
 
 .upload-zone{
     margin:25px;
@@ -62,18 +54,10 @@ body{
     font-weight:bold;
 }
 
-/* =========================================================
-   WORKSPACE
-========================================================= */
-
 .workspace{
     display:none;
     padding:25px;
 }
-
-/* =========================================================
-   ACTIVE MONITOR HEADER
-========================================================= */
 
 .monitor-header-wrapper{
     display:flex;
@@ -96,16 +80,7 @@ body{
     color:#ef4444;
     font-size:28px;
     cursor:pointer;
-    transition:0.15s;
 }
-
-.header-nav-btn:hover{
-    transform:scale(1.15);
-}
-
-/* =========================================================
-   MAIN GRID
-========================================================= */
 
 .main-layout{
     display:flex;
@@ -124,10 +99,6 @@ body{
     flex-direction:column;
     gap:20px;
 }
-
-/* =========================================================
-   CONTROL PANEL
-========================================================= */
 
 .control-panel{
     background:#f1f5f9;
@@ -155,10 +126,6 @@ select{
     font-size:13px;
 }
 
-/* =========================================================
-   GRAPH PANES
-========================================================= */
-
 .graph-pane{
     background:white;
     border:1px solid #e2e8f0;
@@ -174,7 +141,6 @@ select{
     font-size:11px;
     color:#475569;
     text-transform:uppercase;
-    letter-spacing:0.5px;
 }
 
 .graph-pane canvas{
@@ -192,7 +158,7 @@ select{
 
 .cumulative-pane{
     border-top:4px solid #2563eb;
-    height:220px;
+    height:240px;
 }
 
 .scatter-pane{
@@ -200,18 +166,10 @@ select{
     height:220px;
 }
 
-/* =========================================================
-   GREYED DISABLED PANES
-========================================================= */
-
 .disabled-pane{
     opacity:0.35;
     filter:grayscale(100%);
 }
-
-/* =========================================================
-   STATS TABLE
-========================================================= */
 
 .stats-block{
     margin-top:25px;
@@ -233,6 +191,7 @@ select{
 .stats-table td{
     border:1px solid #1e3a8a;
     padding:7px;
+    white-space:nowrap;
 }
 
 .stats-table th{
@@ -257,10 +216,6 @@ select{
     Flow Survey Data Viewer
 </div>
 
-<!-- ======================================================
-     UPLOAD ZONE
-====================================================== -->
-
 <div class="upload-zone" id="dropZone">
 
     <input type="file" id="fileInput" multiple>
@@ -279,46 +234,29 @@ select{
 
 </div>
 
-<!-- ======================================================
-     WORKSPACE
-====================================================== -->
-
 <div class="workspace" id="workspace">
-
-    <!-- MONITOR HEADER -->
 
     <div class="monitor-header-wrapper">
 
-        <button
-            class="header-nav-btn"
-            id="prevMonitorBtn">
+        <button class="header-nav-btn" id="prevMonitorBtn">
             ◀
         </button>
 
-        <div
-            class="monitor-header"
-            id="monitorHeader">
+        <div class="monitor-header" id="monitorHeader">
             --
         </div>
 
-        <button
-            class="header-nav-btn"
-            id="nextMonitorBtn">
+        <button class="header-nav-btn" id="nextMonitorBtn">
             ▶
         </button>
 
     </div>
 
-    <!-- MAIN LAYOUT -->
-
     <div class="main-layout">
-
-        <!-- LEFT COLUMN -->
 
         <div class="left-column">
 
-            <div
-                class="graph-pane rain-pane">
+            <div class="graph-pane rain-pane">
 
                 <h3>
                     Rainfall Intensity (mm/hr)
@@ -328,8 +266,7 @@ select{
 
             </div>
 
-            <div
-                class="graph-pane">
+            <div class="graph-pane">
 
                 <h3>
                     Depth (mm)
@@ -339,9 +276,7 @@ select{
 
             </div>
 
-            <div
-                class="graph-pane"
-                id="flowPane">
+            <div class="graph-pane" id="flowPane">
 
                 <h3>
                     Flow (L/s)
@@ -351,9 +286,7 @@ select{
 
             </div>
 
-            <div
-                class="graph-pane"
-                id="velocityPane">
+            <div class="graph-pane" id="velocityPane">
 
                 <h3>
                     Velocity (m/s)
@@ -365,11 +298,7 @@ select{
 
         </div>
 
-        <!-- RIGHT COLUMN -->
-
         <div class="right-column">
-
-            <!-- CONTROLS -->
 
             <div class="control-panel">
 
@@ -395,10 +324,7 @@ select{
 
             </div>
 
-            <!-- CUMULATIVE -->
-
-            <div
-                class="graph-pane cumulative-pane">
+            <div class="graph-pane cumulative-pane">
 
                 <h3>
                     Cumulative Rainfall (mm)
@@ -408,11 +334,7 @@ select{
 
             </div>
 
-            <!-- SCATTER -->
-
-            <div
-                class="graph-pane scatter-pane"
-                id="scatterPane">
+            <div class="graph-pane scatter-pane" id="scatterPane">
 
                 <h3>
                     Velocity vs Depth Correlation
@@ -426,11 +348,7 @@ select{
 
     </div>
 
-    <!-- STATS -->
-
     <div class="stats-block">
-
-        <!-- SUMMARY -->
 
         <table class="stats-table">
 
@@ -447,7 +365,7 @@ select{
                     </th>
 
                     <th>
-                        Total Flow Volume
+                        Total Flow Volume (L)
                     </th>
 
                 </tr>
@@ -476,8 +394,6 @@ select{
 
         </table>
 
-        <!-- METRICS -->
-
         <table class="stats-table">
 
             <thead>
@@ -487,19 +403,19 @@ select{
                     <th></th>
 
                     <th>
-                        Rain
+                        Rain (mm/hr)
                     </th>
 
                     <th>
-                        Depth
+                        Depth (mm)
                     </th>
 
                     <th>
-                        Flow
+                        Flow (L/s)
                     </th>
 
                     <th>
-                        Velocity
+                        Velocity (m/s)
                     </th>
 
                 </tr>
@@ -557,20 +473,12 @@ select{
 
 <script>
 
-/* =========================================================
-   GLOBALS
-========================================================= */
-
 let fdvDatabase = {};
 let rainDatabase = {};
 
 let charts = {};
 
 let activeMonitorIndex = 0;
-
-/* =========================================================
-   DOM
-========================================================= */
 
 const fileInput =
     document.getElementById('fileInput');
@@ -631,31 +539,39 @@ function parseTelemetryDate(raw){
     );
 }
 
-/* =========================================================
-   DATE FORMATTER
-========================================================= */
-
 function formatDate(date){
 
-    const y = date.getFullYear();
+    return date.toLocaleDateString(
+        'en-GB',
+        {
+            day:'2-digit',
+            month:'short'
+        }
+    );
+}
 
-    const m =
-        String(date.getMonth()+1)
-        .padStart(2,'0');
+function formatDateTime(date){
 
-    const d =
-        String(date.getDate())
-        .padStart(2,'0');
+    const day =
+        date.toLocaleDateString(
+            'en-GB',
+            {
+                day:'2-digit',
+                month:'short'
+            }
+        );
 
-    const h =
-        String(date.getHours())
-        .padStart(2,'0');
+    const time =
+        date.toLocaleTimeString(
+            'en-GB',
+            {
+                hour:'2-digit',
+                minute:'2-digit',
+                hour12:false
+            }
+        );
 
-    const mi =
-        String(date.getMinutes())
-        .padStart(2,'0');
-
-    return `${y}-${m}-${d} ${h}:${mi}`;
+    return `${day} ${time}`;
 }
 
 /* =========================================================
@@ -991,9 +907,7 @@ function handleFiles(files){
             const upper =
                 file.name.toUpperCase();
 
-            if(
-                upper.endsWith('.R')
-            ){
+            if(upper.endsWith('.R')){
 
                 rainDatabase[file.name] =
                     processRainFile(
@@ -1022,10 +936,6 @@ function handleFiles(files){
         reader.readAsText(file);
     }
 }
-
-/* =========================================================
-   FINALIZE
-========================================================= */
 
 function finalizeData(){
 
@@ -1069,7 +979,7 @@ function finalizeData(){
 }
 
 /* =========================================================
-   RENDER MONITOR
+   RENDER
 ========================================================= */
 
 function renderCurrentMonitor(){
@@ -1100,10 +1010,6 @@ function renderCurrentMonitor(){
     const labels =
         fdv.timestamps.map(formatDate);
 
-    /* =====================================================
-       CHARTS
-    ===================================================== */
-
     createChart(
         'rainChart',
         'bar',
@@ -1112,13 +1018,7 @@ function renderCurrentMonitor(){
         '#2563eb'
     );
 
-    createChart(
-        'cumulativeChart',
-        'line',
-        labels,
-        rain.cumulative,
-        '#2563eb'
-    );
+    renderCumulativeRainfallChart(fdv);
 
     createChart(
         'depthChart',
@@ -1153,10 +1053,6 @@ function renderCurrentMonitor(){
         isDepthMonitor
     );
 
-    /* =====================================================
-       DISABLED PANES
-    ===================================================== */
-
     document
         .getElementById('flowPane')
         .classList.toggle(
@@ -1182,7 +1078,7 @@ function renderCurrentMonitor(){
 }
 
 /* =========================================================
-   CHART CREATOR
+   MAIN CHART CREATOR
 ========================================================= */
 
 function createChart(
@@ -1248,6 +1144,14 @@ function createChart(
                         ticks:{
                             maxTicksLimit:8
                         }
+                    },
+
+                    y:{
+
+                        reverse:
+                            canvasId === 'rainChart',
+
+                        beginAtZero:true
                     }
                 }
             }
@@ -1255,7 +1159,111 @@ function createChart(
 }
 
 /* =========================================================
-   SCATTER PLOT
+   CUMULATIVE CHART
+========================================================= */
+
+function renderCumulativeRainfallChart(fdv){
+
+    if(charts.cumulativeChart){
+        charts.cumulativeChart.destroy();
+    }
+
+    const ctx =
+        document
+        .getElementById('cumulativeChart')
+        .getContext('2d');
+
+    const bluePalette = [
+
+        '#1d4ed8',
+        '#2563eb',
+        '#3b82f6',
+        '#60a5fa',
+        '#93c5fd'
+    ];
+
+    const datasets = [];
+
+    let idx = 0;
+
+    Object.keys(rainDatabase).forEach(key => {
+
+        const synced =
+            synchronizeRainfallToFdv(
+                fdv,
+                rainDatabase[key]
+            );
+
+        datasets.push({
+
+            label:key,
+
+            data:synced.cumulative,
+
+            borderColor:
+                bluePalette[
+                    idx % bluePalette.length
+                ],
+
+            borderWidth:1.5,
+
+            pointRadius:0,
+
+            fill:false
+        });
+
+        idx++;
+    });
+
+    const labels =
+        fdv.timestamps.map(formatDate);
+
+    charts.cumulativeChart =
+        new Chart(ctx,{
+
+            type:'line',
+
+            data:{
+
+                labels,
+
+                datasets
+            },
+
+            options:{
+
+                responsive:true,
+
+                maintainAspectRatio:false,
+
+                animation:false,
+
+                plugins:{
+
+                    legend:{
+                        display:true,
+                        position:'bottom'
+                    }
+                },
+
+                scales:{
+
+                    x:{
+                        ticks:{
+                            maxTicksLimit:8
+                        }
+                    },
+
+                    y:{
+                        beginAtZero:true
+                    }
+                }
+            }
+        });
+}
+
+/* =========================================================
+   SCATTER
 ========================================================= */
 
 function renderScatter(
@@ -1347,13 +1355,11 @@ function updateStats(fdv,rain){
         'timeRangeCell'
     ).innerText =
 
-        `${formatDate(fdv.timestamps[0])}
-         - 
-         ${formatDate(
+        `${formatDateTime(fdv.timestamps[0])} - ${formatDateTime(
             fdv.timestamps[
                 fdv.timestamps.length-1
             ]
-         )}`;
+        )}`;
 
     document.getElementById(
         'rainTotalCell'
@@ -1371,64 +1377,21 @@ function updateStats(fdv,rain){
             fdv.flow.reduce((a,b)=>a+b,0)
         ).toFixed(2);
 
-    /* MIN */
+    document.getElementById('minRain').innerText = min(rain.intensity);
+    document.getElementById('minDepth').innerText = min(fdv.depth);
+    document.getElementById('minFlow').innerText = min(fdv.flow);
+    document.getElementById('minVelocity').innerText = min(fdv.velocity);
 
-    document.getElementById(
-        'minRain'
-    ).innerText = min(rain.intensity);
+    document.getElementById('avgRain').innerText = avg(rain.intensity);
+    document.getElementById('avgDepth').innerText = avg(fdv.depth);
+    document.getElementById('avgFlow').innerText = avg(fdv.flow);
+    document.getElementById('avgVelocity').innerText = avg(fdv.velocity);
 
-    document.getElementById(
-        'minDepth'
-    ).innerText = min(fdv.depth);
-
-    document.getElementById(
-        'minFlow'
-    ).innerText = min(fdv.flow);
-
-    document.getElementById(
-        'minVelocity'
-    ).innerText = min(fdv.velocity);
-
-    /* AVG */
-
-    document.getElementById(
-        'avgRain'
-    ).innerText = avg(rain.intensity);
-
-    document.getElementById(
-        'avgDepth'
-    ).innerText = avg(fdv.depth);
-
-    document.getElementById(
-        'avgFlow'
-    ).innerText = avg(fdv.flow);
-
-    document.getElementById(
-        'avgVelocity'
-    ).innerText = avg(fdv.velocity);
-
-    /* MAX */
-
-    document.getElementById(
-        'maxRain'
-    ).innerText = max(rain.intensity);
-
-    document.getElementById(
-        'maxDepth'
-    ).innerText = max(fdv.depth);
-
-    document.getElementById(
-        'maxFlow'
-    ).innerText = max(fdv.flow);
-
-    document.getElementById(
-        'maxVelocity'
-    ).innerText = max(fdv.velocity);
+    document.getElementById('maxRain').innerText = max(rain.intensity);
+    document.getElementById('maxDepth').innerText = max(fdv.depth);
+    document.getElementById('maxFlow').innerText = max(fdv.flow);
+    document.getElementById('maxVelocity').innerText = max(fdv.velocity);
 }
-
-/* =========================================================
-   EVENTS
-========================================================= */
 
 monitorSelector.addEventListener(
     'change',
