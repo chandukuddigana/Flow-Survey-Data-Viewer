@@ -162,7 +162,7 @@ select{
 }
 
 .scatter-pane{
-    border-top:4px solid #ef4444;
+    border-top:4px solid #16a34a;
     height:220px;
 }
 
@@ -279,7 +279,7 @@ select{
             <div class="graph-pane" id="flowPane">
 
                 <h3>
-                    Flow (L/s)
+                    Flow (l/s)
                 </h3>
 
                 <canvas id="flowChart"></canvas>
@@ -309,6 +309,28 @@ select{
                     </span>
 
                     <select id="monitorSelector"></select>
+
+                </div>
+
+                <div>
+
+                    <span>
+                        Size of the Monitored Pipe
+                    </span>
+
+                    <div
+                        id="pipeSizeBox"
+                        style="
+                            background:white;
+                            border:1px solid #cbd5e1;
+                            border-radius:4px;
+                            padding:10px;
+                            font-size:13px;
+                            color:#0f172a;
+                            font-weight:600;
+                        ">
+                        --
+                    </div>
 
                 </div>
 
@@ -365,7 +387,7 @@ select{
                     </th>
 
                     <th>
-                        Total Flow Volume (L)
+                        Total Flow Volume (m³)
                     </th>
 
                 </tr>
@@ -411,7 +433,7 @@ select{
                     </th>
 
                     <th>
-                        Flow (L/s)
+                        Flow (l/s)
                     </th>
 
                     <th>
@@ -501,10 +523,6 @@ const rainSelector =
 const monitorHeader =
     document.getElementById('monitorHeader');
 
-/* =========================================================
-   DATE PARSER
-========================================================= */
-
 function parseTelemetryDate(raw){
 
     const clean =
@@ -574,10 +592,6 @@ function formatDateTime(date){
     return `${day} ${time}`;
 }
 
-/* =========================================================
-   FILE INPUT
-========================================================= */
-
 dropZone.addEventListener('click', () => {
     fileInput.click();
 });
@@ -596,10 +610,6 @@ dropZone.addEventListener('drop', e => {
 
     handleFiles(e.dataTransfer.files);
 });
-
-/* =========================================================
-   R PARSER
-========================================================= */
 
 function processRainFile(text,fileName){
 
@@ -707,10 +717,6 @@ function processRainFile(text,fileName){
     };
 }
 
-/* =========================================================
-   FDV PARSER
-========================================================= */
-
 function processFdvFile(text,fileName){
 
     const lines =
@@ -726,9 +732,20 @@ function processFdvFile(text,fileName){
     let flow = [];
     let velocity = [];
 
+    let pipeSize = '--';
+
     for(let line of lines){
 
         const clean = line.trim();
+
+        const pipeMatch =
+            clean.match(/(\d+)\s*mm/i);
+
+        if(pipeMatch){
+
+            pipeSize =
+                pipeMatch[1];
+        }
 
         if(clean.includes('*CSTART')){
             insideConstants = true;
@@ -816,13 +833,11 @@ function processFdvFile(text,fileName){
 
         velocity,
 
-        intervalMinutes
+        intervalMinutes,
+
+        pipeSize
     };
 }
-
-/* =========================================================
-   RAINFALL SYNCHRONIZATION
-========================================================= */
 
 function synchronizeRainfallToFdv(
     fdvData,
@@ -880,10 +895,6 @@ function synchronizeRainfallToFdv(
     };
 }
 
-/* =========================================================
-   HANDLE FILES
-========================================================= */
-
 function handleFiles(files){
 
     fdvDatabase = {};
@@ -940,10 +951,12 @@ function handleFiles(files){
 function finalizeData(){
 
     const fdvKeys =
-        Object.keys(fdvDatabase);
+        Object.keys(fdvDatabase)
+        .sort();
 
     const rainKeys =
-        Object.keys(rainDatabase);
+        Object.keys(rainDatabase)
+        .sort();
 
     monitorSelector.innerHTML = '';
     rainSelector.innerHTML = '';
@@ -970,6 +983,10 @@ function finalizeData(){
         rainSelector.appendChild(opt);
     });
 
+    document
+        .getElementById('dropZone')
+        .style.display = 'none';
+
     workspace.style.display = 'block';
 
     statusDiv.innerText =
@@ -977,10 +994,6 @@ function finalizeData(){
 
     renderCurrentMonitor();
 }
-
-/* =========================================================
-   RENDER
-========================================================= */
 
 function renderCurrentMonitor(){
 
@@ -1000,6 +1013,12 @@ function renderCurrentMonitor(){
             fdv,
             rainDatabase[rainKey]
         );
+
+    document
+        .getElementById('pipeSizeBox')
+        .innerText =
+
+        `${fdv.pipeSize} mm`;
 
     monitorHeader.innerText =
         fdvKey.replace('.fdv','');
@@ -1025,7 +1044,7 @@ function renderCurrentMonitor(){
         'line',
         labels,
         fdv.depth,
-        '#1e3a8a'
+        '#16a34a'
     );
 
     createChart(
@@ -1045,7 +1064,7 @@ function renderCurrentMonitor(){
         fdv.velocity,
         isDepthMonitor
             ? '#94a3b8'
-            : '#dc2626'
+            : '#16a34a'
     );
 
     renderScatter(
@@ -1076,10 +1095,6 @@ function renderCurrentMonitor(){
 
     updateStats(fdv,rain);
 }
-
-/* =========================================================
-   MAIN CHART CREATOR
-========================================================= */
 
 function createChart(
     canvasId,
@@ -1158,10 +1173,6 @@ function createChart(
         });
 }
 
-/* =========================================================
-   CUMULATIVE CHART
-========================================================= */
-
 function renderCumulativeRainfallChart(fdv){
 
     if(charts.cumulativeChart){
@@ -1176,10 +1187,8 @@ function renderCumulativeRainfallChart(fdv){
     const bluePalette = [
 
         '#1d4ed8',
-        '#2563eb',
-        '#3b82f6',
-        '#60a5fa',
-        '#93c5fd'
+        '#0ea5e9',
+        '#38bdf8'
     ];
 
     const datasets = [];
@@ -1262,10 +1271,6 @@ function renderCumulativeRainfallChart(fdv){
         });
 }
 
-/* =========================================================
-   SCATTER
-========================================================= */
-
 function renderScatter(
     fdv,
     isDepthMonitor
@@ -1306,7 +1311,7 @@ function renderScatter(
                     backgroundColor:
                         isDepthMonitor
                         ? '#94a3b8'
-                        : '#dc2626',
+                        : '#16a34a',
 
                     pointRadius:2
                 }]
@@ -1328,10 +1333,6 @@ function renderScatter(
             }
         });
 }
-
-/* =========================================================
-   STATS
-========================================================= */
 
 function updateStats(fdv,rain){
 
@@ -1374,7 +1375,13 @@ function updateStats(fdv,rain){
     ).innerText =
 
         (
-            fdv.flow.reduce((a,b)=>a+b,0)
+            (
+                fdv.flow.reduce((a,b)=>a+b,0)
+                *
+                fdv.intervalMinutes
+                *
+                60
+            ) / 1000
         ).toFixed(2);
 
     document.getElementById('minRain').innerText = min(rain.intensity);
@@ -1408,7 +1415,8 @@ document
     .addEventListener('click', () => {
 
         const keys =
-            Object.keys(fdvDatabase);
+            Object.keys(fdvDatabase)
+            .sort();
 
         activeMonitorIndex--;
 
@@ -1428,7 +1436,8 @@ document
     .addEventListener('click', () => {
 
         const keys =
-            Object.keys(fdvDatabase);
+            Object.keys(fdvDatabase)
+            .sort();
 
         activeMonitorIndex++;
 
