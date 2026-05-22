@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -13,7 +15,7 @@
 body{
     margin:0;
     font-family:Arial, Helvetica, sans-serif;
-    background:#f4f7fb;
+    background:#f1f5f9;
     color:#1e293b;
 }
 
@@ -21,16 +23,16 @@ body{
     background:white;
     padding:14px 24px;
     border-bottom:1px solid #dbe3ec;
-    font-size:20px;
+    font-size:22px;
     font-weight:bold;
 }
 
 .upload-zone{
     margin:20px;
-    padding:40px;
-    border:2px dashed #3b82f6;
+    padding:50px;
+    border:2px dashed #2563eb;
+    border-radius:10px;
     background:white;
-    border-radius:8px;
     text-align:center;
     cursor:pointer;
 }
@@ -43,22 +45,42 @@ body{
     display:none;
 }
 
+.status{
+    margin-top:14px;
+    color:#2563eb;
+    font-weight:bold;
+}
+
 .workspace{
     display:none;
     padding:20px;
 }
 
+.controls{
+    display:flex;
+    gap:15px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+}
+
+select{
+    padding:10px 14px;
+    border-radius:6px;
+    border:1px solid #cbd5e1;
+    min-width:250px;
+}
+
 .chart-grid{
     display:grid;
     grid-template-columns:1fr;
-    gap:18px;
+    gap:20px;
 }
 
 .chart-box{
     background:white;
-    border-radius:8px;
+    border-radius:10px;
     border:1px solid #dbe3ec;
-    padding:14px;
+    padding:15px;
 }
 
 .chart-box h3{
@@ -68,31 +90,16 @@ body{
     color:#334155;
 }
 
-.controls{
-    display:flex;
-    gap:12px;
-    margin-bottom:20px;
-    flex-wrap:wrap;
-}
-
-select{
-    padding:8px 12px;
-    border-radius:6px;
-    border:1px solid #cbd5e1;
-    min-width:220px;
-}
-
-.status{
-    margin-top:12px;
-    color:#2563eb;
-    font-weight:bold;
+.chart-container{
+    position:relative;
+    height:260px;
 }
 
 .info-panel{
     margin-top:20px;
     background:white;
+    border-radius:10px;
     border:1px solid #dbe3ec;
-    border-radius:8px;
     padding:16px;
 }
 
@@ -100,7 +107,13 @@ select{
     margin-bottom:8px;
 }
 
+.error{
+    color:red;
+    font-weight:bold;
+}
+
 </style>
+
 </head>
 
 <body>
@@ -113,11 +126,11 @@ select{
 
     <input type="file" id="fileInput" multiple>
 
-    <div style="font-size:18px;font-weight:bold;">
+    <div style="font-size:22px;font-weight:bold;">
         Click or Drag Files Here
     </div>
 
-    <div style="margin-top:10px;">
+    <div style="margin-top:12px;">
         Upload .FDV and .R files
     </div>
 
@@ -145,27 +158,37 @@ select{
 
         <div class="chart-box">
             <h3>Rainfall Intensity (mm/hr)</h3>
-            <canvas id="rainChart"></canvas>
+            <div class="chart-container">
+                <canvas id="rainChart"></canvas>
+            </div>
         </div>
 
         <div class="chart-box">
             <h3>Cumulative Rainfall (mm)</h3>
-            <canvas id="cumulativeChart"></canvas>
+            <div class="chart-container">
+                <canvas id="cumulativeChart"></canvas>
+            </div>
         </div>
 
         <div class="chart-box">
             <h3>Depth (mm)</h3>
-            <canvas id="depthChart"></canvas>
+            <div class="chart-container">
+                <canvas id="depthChart"></canvas>
+            </div>
         </div>
 
         <div class="chart-box">
             <h3>Flow (L/s)</h3>
-            <canvas id="flowChart"></canvas>
+            <div class="chart-container">
+                <canvas id="flowChart"></canvas>
+            </div>
         </div>
 
         <div class="chart-box">
             <h3>Velocity (m/s)</h3>
-            <canvas id="velocityChart"></canvas>
+            <div class="chart-container">
+                <canvas id="velocityChart"></canvas>
+            </div>
         </div>
 
     </div>
@@ -183,8 +206,13 @@ select{
         </div>
 
         <div class="info-row">
-            <b>Pipe Size:</b>
-            <span id="pipeSize"></span>
+            <b>Total FDV Records:</b>
+            <span id="fdvCount"></span>
+        </div>
+
+        <div class="info-row">
+            <b>Total Rain Records:</b>
+            <span id="rainCount"></span>
         </div>
 
     </div>
@@ -194,26 +222,25 @@ select{
 <script>
 
 /* ============================================================
-   GLOBAL DATABASES
+   GLOBALS
 ============================================================ */
 
 let fdvDatabase = {};
 let rainDatabase = {};
 
-let charts = {
-    rain:null,
-    cumulative:null,
-    depth:null,
-    flow:null,
-    velocity:null
-};
+let charts = {};
 
-const fileInput = document.getElementById('fileInput');
-const dropZone = document.getElementById('dropZone');
+const fileInput =
+    document.getElementById('fileInput');
 
-const workspace = document.getElementById('workspace');
+const dropZone =
+    document.getElementById('dropZone');
 
-const statusDiv = document.getElementById('status');
+const statusDiv =
+    document.getElementById('status');
+
+const workspace =
+    document.getElementById('workspace');
 
 const monitorSelector =
     document.getElementById('monitorSelector');
@@ -229,10 +256,6 @@ dropZone.addEventListener('click', () => {
     fileInput.click();
 });
 
-fileInput.addEventListener('change', (e) => {
-    handleFiles(e.target.files);
-});
-
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
 });
@@ -244,45 +267,57 @@ dropZone.addEventListener('drop', (e) => {
     handleFiles(e.dataTransfer.files);
 });
 
+fileInput.addEventListener('change', (e) => {
+    handleFiles(e.target.files);
+});
+
 /* ============================================================
    DATE PARSER
 ============================================================ */
 
-function parseTelemetryDate(rawDateStr){
+function parseTelemetryDate(raw){
 
-    const clean = rawDateStr.trim();
+    try{
 
-    if(clean.length !== 10){
+        const clean =
+            raw.toString().trim();
+
+        if(clean.length !== 10){
+            return null;
+        }
+
+        const yy =
+            parseInt(clean.slice(0,2));
+
+        const mm =
+            parseInt(clean.slice(2,4)) - 1;
+
+        const dd =
+            parseInt(clean.slice(4,6));
+
+        const hh =
+            parseInt(clean.slice(6,8));
+
+        const mi =
+            parseInt(clean.slice(8,10));
+
+        const fullYear =
+            yy >= 70
+            ? 1900 + yy
+            : 2000 + yy;
+
+        return new Date(
+            fullYear,
+            mm,
+            dd,
+            hh,
+            mi
+        );
+
+    } catch(err){
+
         return null;
     }
-
-    const yy =
-        parseInt(clean.slice(0,2));
-
-    const mm =
-        parseInt(clean.slice(2,4)) - 1;
-
-    const dd =
-        parseInt(clean.slice(4,6));
-
-    const hh =
-        parseInt(clean.slice(6,8));
-
-    const mi =
-        parseInt(clean.slice(8,10));
-
-    const fullYear =
-        yy >= 70
-        ? 1900 + yy
-        : 2000 + yy;
-
-    return new Date(
-        fullYear,
-        mm,
-        dd,
-        hh,
-        mi
-    );
 }
 
 /* ============================================================
@@ -291,7 +326,10 @@ function parseTelemetryDate(rawDateStr){
 
 function formatDate(date){
 
-    const y = date.getFullYear();
+    if(!date) return '';
+
+    const y =
+        date.getFullYear();
 
     const m =
         String(date.getMonth()+1)
@@ -313,185 +351,241 @@ function formatDate(date){
 }
 
 /* ============================================================
-   RAIN FILE PARSER
+   R FILE PARSER
 ============================================================ */
 
 function processRainFile(contentText, fileName){
 
-    const lines =
-        contentText.split(/\r?\n/);
+    try{
 
-    let startDate = null;
-    let endDate = null;
-    let intervalMinutes = 2;
+        const lines =
+            contentText.split(/\r?\n/);
 
-    let insideConstants = false;
-    let insideData = false;
+        let startDate = null;
+        let endDate = null;
+        let intervalMinutes = 2;
 
-    let values = [];
+        let insideConstants = false;
+        let insideData = false;
 
-    for(let line of lines){
+        let values = [];
 
-        const clean = line.trim();
+        for(let line of lines){
 
-        if(clean.includes('*CSTART')){
-            insideConstants = true;
-            continue;
-        }
+            const clean =
+                line.trim();
 
-        if(clean.includes('*CEND')){
-            insideConstants = false;
-            insideData = true;
-            continue;
-        }
+            if(clean.includes('*CSTART')){
+                insideConstants = true;
+                continue;
+            }
 
-        if(insideConstants){
+            if(clean.includes('*CEND')){
+                insideConstants = false;
+                insideData = true;
+                continue;
+            }
 
-            const match =
-                clean.match(
-                    /(\d{10})\s+(\d{10})\s+(\d+)/
-                );
+            if(insideConstants){
 
-            if(match){
+                const match =
+                    clean.match(
+                        /(\d{10})\s+(\d{10})\s+(\d+)/
+                    );
 
-                startDate =
-                    parseTelemetryDate(match[1]);
+                if(match){
 
-                endDate =
-                    parseTelemetryDate(match[2]);
+                    startDate =
+                        parseTelemetryDate(match[1]);
 
-                intervalMinutes =
-                    parseInt(match[3]);
+                    endDate =
+                        parseTelemetryDate(match[2]);
+
+                    intervalMinutes =
+                        parseInt(match[3]);
+                }
+            }
+
+            else if(insideData){
+
+                const nums =
+                    clean.match(/-?\d+\.?\d*/g);
+
+                if(nums){
+
+                    nums.forEach(n => {
+
+                        values.push(
+                            parseFloat(n)
+                        );
+                    });
+                }
             }
         }
 
-        else if(insideData){
+        if(!startDate){
 
-            const nums =
-                clean.match(/-?\d+\.?\d*/g);
+            console.error(
+                `Rain parser failed for ${fileName}`
+            );
 
-            if(nums){
-
-                nums.forEach(n => {
-                    values.push(parseFloat(n));
-                });
-            }
+            return null;
         }
+
+        const timestamps = [];
+
+        const intervalMs =
+            intervalMinutes *
+            60 *
+            1000;
+
+        for(let i=0;i<values.length;i++){
+
+            timestamps.push(
+
+                new Date(
+                    startDate.getTime() +
+                    i * intervalMs
+                )
+            );
+        }
+
+        let cumulative = [];
+
+        let running = 0;
+
+        values.forEach(v => {
+
+            running +=
+                (v * intervalMinutes) / 60;
+
+            cumulative.push(running);
+        });
+
+        return {
+
+            fileName,
+
+            timestamps,
+
+            intensity:values,
+
+            cumulative,
+
+            intervalMinutes
+        };
+
+    } catch(err){
+
+        console.error(err);
+
+        return null;
     }
-
-    const timestamps = [];
-
-    const intervalMs =
-        intervalMinutes * 60 * 1000;
-
-    for(let i=0;i<values.length;i++){
-
-        timestamps.push(
-            new Date(
-                startDate.getTime() +
-                i * intervalMs
-            )
-        );
-    }
-
-    let cumulative = [];
-
-    let running = 0;
-
-    values.forEach(v => {
-
-        running +=
-            (v * intervalMinutes) / 60;
-
-        cumulative.push(running);
-    });
-
-    return {
-
-        fileName,
-
-        timestamps,
-
-        intensity:values,
-
-        cumulative,
-
-        intervalMinutes
-    };
 }
 
 /* ============================================================
-   FDV FILE PARSER
+   FDV PARSER
 ============================================================ */
 
 function processFdvFile(contentText, fileName){
 
-    const lines =
-        contentText.split(/\r?\n/);
+    try{
 
-    let timestamps = [];
-    let depth = [];
-    let flow = [];
-    let velocity = [];
+        const lines =
+            contentText.split(/\r?\n/);
 
-    let pipeSize = 'Unknown';
+        let timestamps = [];
+        let depth = [];
+        let flow = [];
+        let velocity = [];
 
-    for(let line of lines){
+        for(let line of lines){
 
-        const clean = line.trim();
+            const clean =
+                line.trim();
 
-        const match =
-            clean.match(
-                /^(\d{10})\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/
-            );
+            if(!clean){
+                continue;
+            }
 
-        if(match){
+            const nums =
+                clean.match(/-?\d+\.?\d*/g);
 
-            timestamps.push(
-                parseTelemetryDate(match[1])
-            );
+            if(!nums){
+                continue;
+            }
 
-            depth.push(parseFloat(match[2]));
+            if(nums.length >= 4){
 
-            flow.push(parseFloat(match[3]));
+                const dateStr =
+                    nums[0];
 
-            velocity.push(parseFloat(match[4]));
+                if(dateStr.length === 10){
+
+                    const dt =
+                        parseTelemetryDate(dateStr);
+
+                    if(dt){
+
+                        timestamps.push(dt);
+
+                        depth.push(
+                            parseFloat(nums[1])
+                        );
+
+                        flow.push(
+                            parseFloat(nums[2])
+                        );
+
+                        velocity.push(
+                            parseFloat(nums[3])
+                        );
+                    }
+                }
+            }
         }
 
-        if(
-            clean.toUpperCase().includes('PIPE')
-        ){
-            pipeSize = clean;
+        if(timestamps.length === 0){
+
+            console.error(
+                `No FDV telemetry found in ${fileName}`
+            );
+
+            return null;
         }
+
+        let intervalMinutes = 2;
+
+        if(timestamps.length >= 2){
+
+            intervalMinutes =
+                (
+                    timestamps[1].getTime() -
+                    timestamps[0].getTime()
+                ) / (60*1000);
+        }
+
+        return {
+
+            fileName,
+
+            timestamps,
+
+            depth,
+
+            flow,
+
+            velocity,
+
+            intervalMinutes
+        };
+
+    } catch(err){
+
+        console.error(err);
+
+        return null;
     }
-
-    let intervalMinutes = 2;
-
-    if(timestamps.length >= 2){
-
-        intervalMinutes =
-            (
-                timestamps[1] -
-                timestamps[0]
-            ) / (60 * 1000);
-    }
-
-    return {
-
-        fileName,
-
-        timestamps,
-
-        depth,
-
-        flow,
-
-        velocity,
-
-        intervalMinutes,
-
-        pipeSize
-    };
 }
 
 /* ============================================================
@@ -516,7 +610,8 @@ function synchronizeRainfallToFdv(
         60 *
         1000;
 
-    const rainMap = new Map();
+    const rainMap =
+        new Map();
 
     for(let i=0;i<rainData.timestamps.length;i++){
 
@@ -578,45 +673,58 @@ function handleFiles(files){
     fdvDatabase = {};
     rainDatabase = {};
 
-    let processed = 0;
-
     statusDiv.innerText =
         'Processing files...';
 
+    let processed = 0;
+
     for(let file of files){
 
-        const reader = new FileReader();
+        const reader =
+            new FileReader();
 
         reader.onload = function(e){
 
-            const text = e.target.result;
+            const text =
+                e.target.result;
 
             const upper =
                 file.name.toUpperCase();
 
-            if(
-                upper.endsWith('.R') ||
-                text.includes('INTENSITY')
-            ){
+            try{
 
-                const rain =
-                    processRainFile(
-                        text,
-                        file.name
-                    );
+                if(
+                    upper.endsWith('.R') ||
+                    text.includes('INTENSITY')
+                ){
 
-                rainDatabase[file.name] = rain;
-            }
+                    const rain =
+                        processRainFile(
+                            text,
+                            file.name
+                        );
 
-            else {
+                    if(rain){
+                        rainDatabase[file.name] = rain;
+                    }
+                }
 
-                const fdv =
-                    processFdvFile(
-                        text,
-                        file.name
-                    );
+                else {
 
-                fdvDatabase[file.name] = fdv;
+                    const fdv =
+                        processFdvFile(
+                            text,
+                            file.name
+                        );
+
+                    if(fdv){
+                        fdvDatabase[file.name] = fdv;
+                    }
+                }
+
+            } catch(err){
+
+                console.error(err);
             }
 
             processed++;
@@ -643,6 +751,22 @@ function finalizeData(){
     const rainKeys =
         Object.keys(rainDatabase);
 
+    if(fdvKeys.length === 0){
+
+        statusDiv.innerHTML =
+            '<span class="error">No FDV data detected</span>';
+
+        return;
+    }
+
+    if(rainKeys.length === 0){
+
+        statusDiv.innerHTML =
+            '<span class="error">No Rainfall data detected</span>';
+
+        return;
+    }
+
     monitorSelector.innerHTML = '';
     rainSelector.innerHTML = '';
 
@@ -668,22 +792,20 @@ function finalizeData(){
         rainSelector.appendChild(opt);
     });
 
-    if(fdvKeys.length && rainKeys.length){
+    const fdv =
+        fdvDatabase[fdvKeys[0]];
 
-        const fdv =
-            fdvDatabase[fdvKeys[0]];
+    const rain =
+        rainDatabase[rainKeys[0]];
 
-        const rain =
-            rainDatabase[rainKeys[0]];
+    rainDatabase[rainKeys[0]] =
+        synchronizeRainfallToFdv(
+            fdv,
+            rain
+        );
 
-        rainDatabase[rainKeys[0]] =
-            synchronizeRainfallToFdv(
-                fdv,
-                rain
-            );
-    }
-
-    workspace.style.display = 'block';
+    workspace.style.display =
+        'block';
 
     statusDiv.innerText =
         'Files loaded successfully';
@@ -727,9 +849,13 @@ function renderCharts(){
             ]
         );
 
-    document.getElementById('pipeSize')
+    document.getElementById('fdvCount')
         .innerText =
-        fdv.pipeSize;
+        fdv.timestamps.length;
+
+    document.getElementById('rainCount')
+        .innerText =
+        rain.timestamps.length;
 
     const labels =
         fdv.timestamps.map(formatDate);
@@ -820,6 +946,8 @@ function createChart(
                 responsive:true,
 
                 maintainAspectRatio:false,
+
+                animation:false,
 
                 scales:{
                     x:{
