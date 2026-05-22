@@ -662,7 +662,7 @@ function processRainFile(text,fileName){
 function processFdvFile(text,fileName){
 
     const lines =
-        text.split(/\\r?\\n/);
+        text.split(/\r?\n/);
 
     let startDate = null;
     let intervalMinutes = 2;
@@ -694,18 +694,49 @@ function processFdvFile(text,fileName){
 
         if(insideConstants){
 
-            const sizeMatch =
-                clean.match(/^(\\d{2,4})$/);
+            /*
+            PIPE SIZE EXTRACTION
+            Looks for values like:
+            600
+            3000
+            */
 
-            if(sizeMatch){
+            if(
+                pipeSize === '--'
+            ){
 
-                pipeSize =
-                    sizeMatch[1];
+                const standaloneNumber =
+                    clean.match(/^\d{2,4}$/);
+
+                if(standaloneNumber){
+
+                    const candidate =
+                        parseInt(
+                            standaloneNumber[0]
+                        );
+
+                    /*
+                    VALID PIPE SIZE RANGE
+                    */
+
+                    if(
+                        candidate >= 75 &&
+                        candidate <= 5000
+                    ){
+
+                        pipeSize =
+                            candidate.toString();
+                    }
+                }
             }
+
+            /*
+            DATE + INTERVAL
+            */
 
             const match =
                 clean.match(
-                    /(\\d{10})\\s+(\\d{10})\\s+(\\d+)/
+                    /(\d{10})\s+(\d{10})\s+(\d+)/
                 );
 
             if(match){
@@ -721,7 +752,7 @@ function processFdvFile(text,fileName){
         else if(insideData){
 
             const nums =
-                clean.match(/-?\\d+\\.?\\d*/g);
+                clean.match(/-?\d+\.?\d*/g);
 
             if(nums){
 
