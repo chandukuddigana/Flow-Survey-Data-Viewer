@@ -1,872 +1,1485 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flow Survey Data Viewer</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #222; background-color: #f8fafc; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-        
-        /* Main Workspace Content Arena */
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100%; min-width: 0; padding: 0; }
-        .top-banner { background: #fff; padding: 10px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; min-height: 20px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        
-        /* Large Bold Red Center-Aligned Target Identifier Title Wrapper and Buttons */
-        .active-monitor-header-wrapper { display: none; justify-content: center; align-items: center; gap: 24px; margin: 0 0 20px 0; width: 100%; user-select: none; }
-        .active-monitor-header { font-size: 26px; font-weight: 800; color: #ef4444; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; }
-        .title-nav-arrow-btn { background: none; border: none; font-size: 24px; color: #ef4444; cursor: pointer; transition: all 0.1s ease; padding: 5px 14px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-        .title-nav-arrow-btn:hover { color: #b91c1c; background-color: #fee2e2; transform: scale(1.15); }
-        .title-nav-arrow-btn:active { transform: scale(0.92); }
+<title>Flow Survey Viewer</title>
 
-        /* Clickable Drop Zone area */
-        .upload-zone { border: 2px dashed #38bdf8; padding: 35px 25px; text-align: center; background: #fff; border-radius: 8px; margin: 25px; cursor: pointer; transition: background 0.15s ease-in-out; flex-shrink: 0; }
-        .upload-zone:hover { background: #f0f9ff; border-color: #0284c7; }
-        #fileInput { display: none; }
-        .btn { background: #0284c7; color: white; padding: 10px 20px; border-radius: 4px; cursor: pointer; display: inline-block; font-weight: bold; font-size: 13px; text-decoration: none; pointer-events: none; }
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        
-        /* Compact Multi-Line Gauge Control Panel Box */
-        .gauge-control-panel { display: flex; flex-direction: column; gap: 6px; background: #f1f5f9; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; }
-        .gauge-control-panel span { font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
-        .dropdown-wrapper { display: flex; flex-direction: column; gap: 4px; }
-        .rain-selector, .monitor-selector { padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 13px; font-weight: 600; color: #0f172a; outline: none; cursor: pointer; width: 100%; box-sizing: border-box; }
-        .rain-selector:hover, .monitor-selector:hover { border-color: #94a3b8; }
+<style>
 
-        /* Navigation controls layout for selection wrapper */
-        .selector-nav-group { display: flex; align-items: center; gap: 6px; width: 100%; }
-        .nav-arrow-btn { display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; width: 32px; height: 33px; font-size: 14px; font-weight: bold; color: #475569; cursor: pointer; user-select: none; transition: all 0.1s ease; flex-shrink: 0; }
-        .nav-arrow-btn:hover { background: #f8fafc; border-color: #94a3b8; color: #0f172a; }
-        .nav-arrow-btn:active { background: #e2e8f0; }
+body{
+    margin:0;
+    padding:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#f8fafc;
+    color:#1e293b;
+    overflow-x:hidden;
+}
 
-        /* Styles for the Size of the Monitored Pipe Display Box */
-        .pipe-size-box { padding: 8px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #fff; font-size: 14px; font-weight: bold; color: #0f172a; box-sizing: border-box; width: 100%; }
+/* =========================================================
+   TOP BAR
+========================================================= */
 
-        /* LAYOUT GRID SYSTEM WITH MAXIMUM WIDTH */
-        .workspace-view { display: none; padding: 25px; box-sizing: border-box; width: 100%; }
-        .workspace-layout { display: flex; gap: 25px; align-items: flex-start; }
+.top-banner{
+    background:white;
+    border-bottom:1px solid #dbe3ec;
+    padding:12px 24px;
+    font-size:18px;
+    font-weight:700;
+}
 
-        
-        .graph-section-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        .auxiliary-section-column { width: 340px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; }
+/* =========================================================
+   UPLOAD ZONE
+========================================================= */
 
-        .graph-pane { background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); height: 195px; position: relative; }
-        .graph-pane.rain-pane { height: 145px; display: none; }
+.upload-zone{
+    margin:25px;
+    padding:45px;
+    border:2px dashed #38bdf8;
+    border-radius:8px;
+    background:white;
+    text-align:center;
+    cursor:pointer;
+    transition:0.15s;
+}
 
-        
-        .graph-pane.cumulative-pane { border-top: 4px solid #3b82f6; height: 220px; margin-bottom: 0; }
-        .graph-pane.scatter-pane { border-top: 4px solid #ef4444; height: 230px; margin-bottom: 0; }
+.upload-zone:hover{
+    background:#f0f9ff;
+}
 
-        
-        h3 { margin: 0 0 8px 0; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
-        .rain-pane h3 { color: #1e3a8a; }
-        .cumulative-pane h3 { color: #2563eb; }
-        .scatter-pane h3 { color: #b91c1c; }
+#fileInput{
+    display:none;
+}
 
-        /* CUSTOM METRIC TABLES BOTTOM LAYOUT WITH NAVY BLUE BORDERS */
-        .stats-container-block { margin-top: 30px; margin-right: 2px; clear: both; display: flex; flex-direction: column; gap: 10px; background: #fff; border: 1.5px solid #1e3a8a; padding: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); box-sizing: border-box; }
-        .stats-layout-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; }
+.status{
+    margin-top:14px;
+    color:#0284c7;
+    font-weight:bold;
+}
 
-        
-        .stats-layout-table th, .stats-layout-table td { border: 1px solid #1e3a8a; padding: 6px 10px; color: #1e293b; }
-        .stats-layout-table th { background-color: #f0f4f8; font-weight: 600; color: #1e3a8a; font-size: 12px; }
+/* =========================================================
+   WORKSPACE
+========================================================= */
 
-        
-        .stats-layout-table .label-cell { background-color: #f0f4f8; font-weight: bold; width: 100px; text-align: center; color: #1e3a8a; }
-        .stats-layout-table .hdr-main { font-weight: bold; }
-    </style>
+.workspace{
+    display:none;
+    padding:25px;
+}
+
+/* =========================================================
+   ACTIVE MONITOR HEADER
+========================================================= */
+
+.monitor-header-wrapper{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:24px;
+    margin-bottom:25px;
+}
+
+.monitor-header{
+    font-size:28px;
+    font-weight:800;
+    color:#ef4444;
+    letter-spacing:0.5px;
+}
+
+.header-nav-btn{
+    border:none;
+    background:none;
+    color:#ef4444;
+    font-size:28px;
+    cursor:pointer;
+    transition:0.15s;
+}
+
+.header-nav-btn:hover{
+    transform:scale(1.15);
+}
+
+/* =========================================================
+   MAIN GRID
+========================================================= */
+
+.main-layout{
+    display:flex;
+    gap:25px;
+    align-items:flex-start;
+}
+
+.left-column{
+    flex:1;
+    min-width:0;
+}
+
+.right-column{
+    width:340px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+/* =========================================================
+   CONTROL PANEL
+========================================================= */
+
+.control-panel{
+    background:#f1f5f9;
+    border:1px solid #cbd5e1;
+    border-radius:6px;
+    padding:14px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.control-panel span{
+    font-size:11px;
+    font-weight:700;
+    color:#475569;
+    text-transform:uppercase;
+}
+
+select{
+    width:100%;
+    padding:8px 10px;
+    border-radius:4px;
+    border:1px solid #cbd5e1;
+    background:white;
+    font-size:13px;
+}
+
+/* =========================================================
+   GRAPH PANES
+========================================================= */
+
+.graph-pane{
+    background:white;
+    border:1px solid #e2e8f0;
+    border-radius:6px;
+    padding:14px;
+    margin-bottom:20px;
+    height:210px;
+    position:relative;
+}
+
+.graph-pane h3{
+    margin:0 0 10px 0;
+    font-size:11px;
+    color:#475569;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+}
+
+.graph-pane canvas{
+    width:100% !important;
+    height:160px !important;
+}
+
+.rain-pane{
+    height:150px;
+}
+
+.rain-pane canvas{
+    height:100px !important;
+}
+
+.cumulative-pane{
+    border-top:4px solid #2563eb;
+    height:220px;
+}
+
+.scatter-pane{
+    border-top:4px solid #ef4444;
+    height:220px;
+}
+
+/* =========================================================
+   GREYED DISABLED PANES
+========================================================= */
+
+.disabled-pane{
+    opacity:0.35;
+    filter:grayscale(100%);
+}
+
+/* =========================================================
+   STATS TABLE
+========================================================= */
+
+.stats-block{
+    margin-top:25px;
+    background:white;
+    border:1.5px solid #1e3a8a;
+    padding:15px;
+    border-radius:6px;
+}
+
+.stats-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:14px;
+    font-size:12px;
+    text-align:center;
+}
+
+.stats-table th,
+.stats-table td{
+    border:1px solid #1e3a8a;
+    padding:7px;
+}
+
+.stats-table th{
+    background:#f0f4f8;
+    color:#1e3a8a;
+    font-weight:700;
+}
+
+.label-cell{
+    background:#f0f4f8;
+    font-weight:bold;
+    color:#1e3a8a;
+}
+
+</style>
+
 </head>
+
 <body>
 
-    <div class="main-content">
-        <div class="top-banner"></div>
+<div class="top-banner">
+    Flow Survey Data Viewer
+</div>
 
-        
-        <div class="upload-zone" id="dropZone">
-            <div class="btn">Select Files</div>
-            <input type="file" id="fileInput" multiple>
-            <p style="margin: 12px 0 0 0; color: #475569; font-size: 14px; font-weight: 500;">Click anywhere inside this area, or drag and drop your <b>.FDV</b> and <b>.R</b> files here</p>
-            <div id="status" style="margin-top: 10px; font-size: 13px; color: #0284c7; font-weight: bold;">Ready...</div>
-        </div>
+<!-- ======================================================
+     UPLOAD ZONE
+====================================================== -->
 
-        <div class="workspace-view" id="workspaceView">
+<div class="upload-zone" id="dropZone">
 
-            
-            <div class="active-monitor-header-wrapper" id="activeMonitorHeaderWrapper">
-                <button class="title-nav-arrow-btn" id="titlePrevMonitorBtn" title="Previous Monitor">◀</button>
-                <div class="active-monitor-header" id="activeMonitorHeader"></div>
-                <button class="title-nav-arrow-btn" id="titleNextMonitorBtn" title="Next Monitor">▶</button>
-            </div>
+    <input type="file" id="fileInput" multiple>
 
-            <div class="workspace-layout">
-
-                
-                <div class="graph-section-column">
-                    <div class="graph-pane rain-pane" id="rainPane">
-                        <h3>Rainfall Intensity (mm/hr)</h3>
-                        <canvas id="rainChart"></canvas>
-                    </div>
-
-                    
-                    <div id="hydraulicChartsWrapper" style="display: none;">
-                        <div class="graph-pane">
-                            <h3>Depth (mm)</h3>
-                            <canvas id="depthChart"></canvas>
-                        </div>
-                        <div class="graph-pane">
-                            <h3>Flow (lit/sec)</h3>
-                            <canvas id="flowChart"></canvas>
-                        </div>
-                        <div class="graph-pane">
-                            <h3>Velocity (m/s)</h3>
-                            <canvas id="velocityChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="auxiliary-section-column">
-
-                    
-                    <div class="gauge-control-panel" id="controlBar" style="display: none;">
-                        <div class="dropdown-wrapper">
-                            <span>Select Monitor Station:</span>
-                            <div class="selector-nav-group">
-                                <button class="nav-arrow-btn" id="prevMonitorBtn" title="Previous Monitor">◀</button>
-                                <select class="monitor-selector" id="monitorSelector">
-                                    <option value="">-- No Monitor Station Selected --</option>
-                                </select>
-                                <button class="nav-arrow-btn" id="nextMonitorBtn" title="Next Monitor">▶</button>
-                            </div>
-                        </div>
-
-                        <div class="dropdown-wrapper" style="margin-top: 4px;">
-                            <span>Size of the Monitored Pipe:</span>
-                            <div class="pipe-size-box" id="pipeSizeDisplayBox">—</div>
-                        </div>
-
-                        <div class="dropdown-wrapper" style="margin-top: 4px;">
-                            <span>Select Rain gauge:</span>
-                            <select class="rain-selector" id="rainSelector">
-                                <option value="">-- No Rainfall Profile Selected --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="graph-pane cumulative-pane" id="cumulativePane" style="display: none;">
-                        <h3>Cumulative Rainfall (mm)</h3>
-                        <canvas id="cumulativeChart"></canvas>
-                    </div>
-
-                    <div class="graph-pane scatter-pane" id="scatterPane" style="display: none;">
-                        <h3>Velocity vs Depth Correlation</h3>
-                        <canvas id="scatterChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stats-container-block" id="statsContainerBlock">
-
-                
-                <table class="stats-layout-table">
-                    <thead>
-                        <tr>
-                            <th class="hdr-main" style="width: 50%;">Time Range</th>
-                            <th class="hdr-main" style="width: 25%;">Total Rain Depth (mm)</th>
-                            <th class="hdr-main" style="width: 25%;">Total Flow Volume (m³)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td id="tblTimeRange">0000-00-00 00:00:00 - 0000-00-00 00:00:00</td>
-                            <td id="tblTotalRain">0.000</td>
-                            <td id="tblTotalVolume">0.000</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <table class="stats-layout-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 10%;"></th>
-                            <th class="hdr-main" style="width: 22.5%;">Rain Intensity (mm/hr)</th>
-                            <th class="hdr-main" style="width: 22.5%;">Depth (mm)</th>
-                            <th class="hdr-main" style="width: 22.5%;">Flow (L/s)</th>
-                            <th class="hdr-main" style="width: 22.5%;">Velocity (m/s)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="label-cell">Min</td>
-                            <td id="mMinRain">0</td>
-                            <td id="mMinDepth">0</td>
-                            <td id="mMinFlow">0</td>
-                            <td id="mMinVel">0</td>
-                        </tr>
-                        <tr style="background-color: #fcfcfc;">
-                            <td class="label-cell" style="font-weight: bold;">Avg</td>
-                            <td id="mAvgRain" style="font-weight: 500;">0</td>
-                            <td id="mAvgDepth" style="font-weight: 500;">0</td>
-                            <td id="mAvgFlow" style="font-weight: 500;">0</td>
-                            <td id="mAvgVel" style="font-weight: 500;">0</td>
-                        </tr>
-                        <tr>
-                            <td class="label-cell">Max</td>
-                            <td id="mMaxRain">0</td>
-                            <td id="mMaxDepth">0</td>
-                            <td id="mMaxFlow">0</td>
-                            <td id="mMaxVel">0</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-        </div>
+    <div style="font-size:20px;font-weight:700;">
+        Select Files
     </div>
 
-    <script>
-        const fileInput = document.getElementById('fileInput');
-        const dropZone = document.getElementById('dropZone');
-        const statusDiv = document.getElementById('status');
-        const workspaceView = document.getElementById('workspaceView');
-        const activeMonitorHeaderWrapper = document.getElementById('activeMonitorHeaderWrapper');
-        const activeMonitorHeader = document.getElementById('activeMonitorHeader');
-        const hydraulicChartsWrapper = document.getElementById('hydraulicChartsWrapper');
-        const cumulativePane = document.getElementById('cumulativePane');
-        const scatterPane = document.getElementById('scatterPane');
-        const controlBar = document.getElementById('controlBar');
-        const monitorSelector = document.getElementById('monitorSelector');
-        const rainSelector = document.getElementById('rainSelector');
-        const pipeSizeDisplayBox = document.getElementById('pipeSizeDisplayBox');
-        const prevMonitorBtn = document.getElementById('prevMonitorBtn');
-        const nextMonitorBtn = document.getElementById('nextMonitorBtn');
-        const titlePrevMonitorBtn = document.getElementById('titlePrevMonitorBtn');
-        const titleNextMonitorBtn = document.getElementById('titleNextMonitorBtn');
-        let fdvDatabase = {};
-        let rainDatabase = {};
-        let activeFdvKey = null;
-        let charts = { rain: null, cumulative: null, flow: null, depth: null, velocity: null, scatter: null };
-        const lineColorsPalette = ['#1e3a8a', '#2563eb', '#06b6d4', '#f59e0b', '#ec4899', '#8b5cf6', '#ef4444'];
+    <div style="margin-top:10px;">
+        Click or drag .FDV and .R files here
+    </div>
 
-        const preventDefaults = (e) => { e.preventDefault(); e.stopPropagation(); };
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            window.addEventListener(eventName, preventDefaults, false);
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
-        dropZone.addEventListener('click', () => { fileInput.click(); });
+    <div class="status" id="status">
+        Ready...
+    </div>
 
-        fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); });
-        dropZone.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            if (dt.files && dt.files.length > 0) handleFiles(dt.files);
-        });
+</div>
 
-        function handleFiles(files) {
-            if (files.length === 0) return;
-            statusDiv.textContent = `Sorting files into independent data pools...`;
+<!-- ======================================================
+     WORKSPACE
+====================================================== -->
 
-            
-            let filesProcessed = 0;
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const fileNameUpper = file.name.toUpperCase();
+<div class="workspace" id="workspace">
 
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const contentText = e.target.result;
-                    if (contentText.includes('FIELD: 1,RAIN') || fileNameUpper.endsWith('.R')) {
-                        const parsedRain = processRainFile(contentText, file.name);
-                        if (parsedRain) {
-                            let cleanKey = file.name.replace(/\.[rR]$/, '');
-                            rainDatabase[cleanKey] = parsedRain;
-                        }
-                    } else {
-                        const parsedFdv = processFdvFile(contentText, file.name);
-                        if (parsedFdv) {
-                            fdvDatabase[file.name] = parsedFdv;
-                        }
-                    }
+    <!-- MONITOR HEADER -->
 
-                    
-                    filesProcessed++;
-                    if (filesProcessed === files.length) {
-                        const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-                        if (sortedFdvKeys.length > 0 && (!activeFdvKey || !fdvDatabase[activeFdvKey])) {
-                            activeFdvKey = sortedFdvKeys[0];
-                        }
+    <div class="monitor-header-wrapper">
 
-                        populateMonitorDropdown();
-                        populateRainDropdown();
+        <button
+            class="header-nav-btn"
+            id="prevMonitorBtn">
+            ◀
+        </button>
 
-                        
-                        if (Object.keys(fdvDatabase).length > 0 || Object.keys(rainDatabase).length > 0) {
-                            dropZone.style.display = 'none';
-                            workspaceView.style.display = 'block';
-                            controlBar.style.display = 'flex';
-                        }
+        <div
+            class="monitor-header"
+            id="monitorHeader">
+            --
+        </div>
 
-                        if (activeFdvKey) {
-                            switchToFilePage(activeFdvKey);
-                        } else {
-                            activeMonitorHeaderWrapper.style.display = 'none';
-                            hydraulicChartsWrapper.style.display = 'none';
-                            scatterPane.style.display = 'none';
-                            pipeSizeDisplayBox.textContent = "—";
-                            updateRainfallChartTrack();
-                            renderCumulativeComparisonChart();
-                            calculateAndPopulateStats();
-                        }
-                    }
-                };
-                reader.readAsText(file);
+        <button
+            class="header-nav-btn"
+            id="nextMonitorBtn">
+            ▶
+        </button>
+
+    </div>
+
+    <!-- MAIN LAYOUT -->
+
+    <div class="main-layout">
+
+        <!-- LEFT COLUMN -->
+
+        <div class="left-column">
+
+            <div
+                class="graph-pane rain-pane">
+
+                <h3>
+                    Rainfall Intensity (mm/hr)
+                </h3>
+
+                <canvas id="rainChart"></canvas>
+
+            </div>
+
+            <div
+                class="graph-pane">
+
+                <h3>
+                    Depth (mm)
+                </h3>
+
+                <canvas id="depthChart"></canvas>
+
+            </div>
+
+            <div
+                class="graph-pane"
+                id="flowPane">
+
+                <h3>
+                    Flow (L/s)
+                </h3>
+
+                <canvas id="flowChart"></canvas>
+
+            </div>
+
+            <div
+                class="graph-pane"
+                id="velocityPane">
+
+                <h3>
+                    Velocity (m/s)
+                </h3>
+
+                <canvas id="velocityChart"></canvas>
+
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+
+        <div class="right-column">
+
+            <!-- CONTROLS -->
+
+            <div class="control-panel">
+
+                <div>
+
+                    <span>
+                        Select Monitor
+                    </span>
+
+                    <select id="monitorSelector"></select>
+
+                </div>
+
+                <div>
+
+                    <span>
+                        Select Rain Gauge
+                    </span>
+
+                    <select id="rainSelector"></select>
+
+                </div>
+
+            </div>
+
+            <!-- CUMULATIVE -->
+
+            <div
+                class="graph-pane cumulative-pane">
+
+                <h3>
+                    Cumulative Rainfall (mm)
+                </h3>
+
+                <canvas id="cumulativeChart"></canvas>
+
+            </div>
+
+            <!-- SCATTER -->
+
+            <div
+                class="graph-pane scatter-pane"
+                id="scatterPane">
+
+                <h3>
+                    Velocity vs Depth Correlation
+                </h3>
+
+                <canvas id="scatterChart"></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- STATS -->
+
+    <div class="stats-block">
+
+        <!-- SUMMARY -->
+
+        <table class="stats-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Time Range
+                    </th>
+
+                    <th>
+                        Total Rain Depth (mm)
+                    </th>
+
+                    <th>
+                        Total Flow Volume
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <tr>
+
+                    <td id="timeRangeCell">
+                        --
+                    </td>
+
+                    <td id="rainTotalCell">
+                        --
+                    </td>
+
+                    <td id="flowTotalCell">
+                        --
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+        <!-- METRICS -->
+
+        <table class="stats-table">
+
+            <thead>
+
+                <tr>
+
+                    <th></th>
+
+                    <th>
+                        Rain
+                    </th>
+
+                    <th>
+                        Depth
+                    </th>
+
+                    <th>
+                        Flow
+                    </th>
+
+                    <th>
+                        Velocity
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <tr>
+
+                    <td class="label-cell">
+                        Min
+                    </td>
+
+                    <td id="minRain"></td>
+                    <td id="minDepth"></td>
+                    <td id="minFlow"></td>
+                    <td id="minVelocity"></td>
+
+                </tr>
+
+                <tr>
+
+                    <td class="label-cell">
+                        Avg
+                    </td>
+
+                    <td id="avgRain"></td>
+                    <td id="avgDepth"></td>
+                    <td id="avgFlow"></td>
+                    <td id="avgVelocity"></td>
+
+                </tr>
+
+                <tr>
+
+                    <td class="label-cell">
+                        Max
+                    </td>
+
+                    <td id="maxRain"></td>
+                    <td id="maxDepth"></td>
+                    <td id="maxFlow"></td>
+                    <td id="maxVelocity"></td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<script>
+
+/* =========================================================
+   GLOBALS
+========================================================= */
+
+let fdvDatabase = {};
+let rainDatabase = {};
+
+let charts = {};
+
+let activeMonitorIndex = 0;
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const fileInput =
+    document.getElementById('fileInput');
+
+const dropZone =
+    document.getElementById('dropZone');
+
+const workspace =
+    document.getElementById('workspace');
+
+const statusDiv =
+    document.getElementById('status');
+
+const monitorSelector =
+    document.getElementById('monitorSelector');
+
+const rainSelector =
+    document.getElementById('rainSelector');
+
+const monitorHeader =
+    document.getElementById('monitorHeader');
+
+/* =========================================================
+   DATE PARSER
+========================================================= */
+
+function parseTelemetryDate(raw){
+
+    const clean =
+        raw.toString().trim();
+
+    const yy =
+        parseInt(clean.slice(0,2));
+
+    const mm =
+        parseInt(clean.slice(2,4)) - 1;
+
+    const dd =
+        parseInt(clean.slice(4,6));
+
+    const hh =
+        parseInt(clean.slice(6,8));
+
+    const mi =
+        parseInt(clean.slice(8,10));
+
+    const year =
+        yy >= 70
+        ? 1900 + yy
+        : 2000 + yy;
+
+    return new Date(
+        year,
+        mm,
+        dd,
+        hh,
+        mi
+    );
+}
+
+/* =========================================================
+   DATE FORMATTER
+========================================================= */
+
+function formatDate(date){
+
+    const y = date.getFullYear();
+
+    const m =
+        String(date.getMonth()+1)
+        .padStart(2,'0');
+
+    const d =
+        String(date.getDate())
+        .padStart(2,'0');
+
+    const h =
+        String(date.getHours())
+        .padStart(2,'0');
+
+    const mi =
+        String(date.getMinutes())
+        .padStart(2,'0');
+
+    return `${y}-${m}-${d} ${h}:${mi}`;
+}
+
+/* =========================================================
+   FILE INPUT
+========================================================= */
+
+dropZone.addEventListener('click', () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', e => {
+    handleFiles(e.target.files);
+});
+
+dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+});
+
+dropZone.addEventListener('drop', e => {
+
+    e.preventDefault();
+
+    handleFiles(e.dataTransfer.files);
+});
+
+/* =========================================================
+   R PARSER
+========================================================= */
+
+function processRainFile(text,fileName){
+
+    const lines =
+        text.split(/\r?\n/);
+
+    let startDate = null;
+    let intervalMinutes = 2;
+
+    let insideConstants = false;
+    let insideData = false;
+
+    let values = [];
+
+    for(let line of lines){
+
+        const clean = line.trim();
+
+        if(clean.includes('*CSTART')){
+            insideConstants = true;
+            continue;
+        }
+
+        if(clean.includes('*CEND')){
+            insideConstants = false;
+            insideData = true;
+            continue;
+        }
+
+        if(insideConstants){
+
+            const match =
+                clean.match(
+                    /(\d{10})\s+(\d{10})\s+(\d+)/
+                );
+
+            if(match){
+
+                startDate =
+                    parseTelemetryDate(match[1]);
+
+                intervalMinutes =
+                    parseInt(match[3]);
             }
         }
 
-        // --- UPDATED DATE PARSING LOGIC ---
-        // Expects format: DDMMYYHHMM (10 digits)
-        function parseDate(str) {
-            if (!str || str.length < 10) return new Date();
-            let dd = parseInt(str.substring(0, 2));
-            let mm = parseInt(str.substring(2, 4)) - 1;
-            let yy = parseInt("20" + str.substring(4, 6)); 
-            let hh = parseInt(str.substring(6, 8));
-            let min = parseInt(str.substring(8, 10));
-            return new Date(yy, mm, dd, hh, min);
-        }
+        else if(insideData){
 
-        function processFdvFile(text, filename) {
-            const lines = text.split(/\r?\n/);
-            let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
-            let pipeSize = "";
+            const nums =
+                clean.match(/-?\d+\.?\d*/g);
 
-            const isDM = filename.toUpperCase().includes("_DM") || filename.toUpperCase().includes(".DM");
+            if(nums){
 
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
+                nums.forEach(n => {
 
-                
-                if (line.startsWith('*CSTART')) {
-                    if (isDM) {
-                        pipeSize = "N/A";
-                    } else {
-                        let paramLine1 = lines[i+1] ? lines[i+1].trim() : "";
-                        if (paramLine1) {
-                            let cleanParam = paramLine1.replace(/[*#]/g, '').trim();
-                            let sizeMatch = cleanParam.match(/\d+/);
-                            if (sizeMatch) {
-                                pipeSize = sizeMatch[0] + "mm";
-                            } else {
-                                pipeSize = cleanParam;
-                            }
-                        }
-                        let cleanParam = paramLine1.replace(/[*#]/g, '').trim();
-                        let sizeMatch = cleanParam.match(/\d+/);
-                        pipeSize = sizeMatch ? sizeMatch[0] + "mm" : cleanParam;
-                    }
-
-                    let paramLine1ForTime = lines[i+1] ? lines[i+1].trim() : "";
-                    let paramLineNext = lines[i+2] ? lines[i+2].trim() : "";
-
-                    
-                    // FIXED: REGEX TO CAPTURE 12 DIGIT DATE (DDMMYYYYHHMM)
-                    let match = paramLineNext.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
-                    let match = paramLineNext.match(/(\d{10})\s+\d{10}\s+(\d+)/);
-                    if (!match && paramLine1ForTime) {
-                        match = paramLine1ForTime.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
-                        match = paramLine1ForTime.match(/(\d{10})\s+\d{10}\s+(\d+)/);
-                    }
-                    if (match) { 
-                        startTimeStr = match[1];
-                        intervalMinutes = parseInt(match[2]); 
-                    }
-                }
-
-                
-                if (line.startsWith('*CEND')) { inData = true; continue; }
-                if (inData) {
-                    line.split(/\s+/).forEach(t => { let v = parseFloat(t); if (!isNaN(v)) rawValues.push(v); });
-                }
-            }
-
-            
-            if (!pipeSize) pipeSize = isDM ? "N/A" : "Unknown Size";
-            if (rawValues.length < 3) return null;
-            let baseDate = parseDate(startTimeStr);
-            const labels = [], flow = [], depth = [], velocity = [];
-            let step = 0;
-            for (let j = 0; j < rawValues.length; j += 3) {
-                if (j + 2 >= rawValues.length) break;
-                labels.push(getStepLabel(baseDate, step, intervalMinutes));
-                flow.push(rawValues[j]); depth.push(rawValues[j+1]); velocity.push(rawValues[j+2]);
-                step++;
-            }
-            return { labels, flow, depth, velocity, intervalMinutes, pipeSize };
-        }
-
-        function processRainFile(text, fileName) {
-            const lines = text.split(/\r?\n/);
-            let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                if (line.startsWith('*CSTART')) {
-                    let paramLine2 = lines[i+1] ? lines[i+1].trim() : "";
-                    // FIXED: REGEX TO CAPTURE 12 DIGIT DATE (DDMMYYYYHHMM)
-                    let match = paramLine2.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
-                    let match = paramLine2.match(/(\d{10})\s+\d{10}\s+(\d+)/);
-                    if (match) { startTimeStr = match[1]; intervalMinutes = parseInt(match[2]); }
-                }
-                if (line.startsWith('*CEND')) { inData = true; continue; }
-                if (inData) {
-                    line.split(/\s+/).forEach(t => { let v = parseFloat(t); if (!isNaN(v)) rawValues.push(v); });
-                }
-            }
-            if (rawValues.length === 0) return null;
-            let baseDate = parseDate(startTimeStr);
-
-            
-            const labels = [], rawIntensity = [];
-            rawValues.forEach((val, step) => {
-                labels.push(getStepLabel(baseDate, step, intervalMinutes));
-                rawIntensity.push(val);
-            });
-            const intervalHours = intervalMinutes / 60;
-            const depths = rawIntensity.map(intensity => intensity * intervalHours);
-            const totalDepth = depths.reduce((sum, d) => sum + d, 0);
-            return { 
-                labels, 
-                values: rawIntensity, 
-                depths: depths,       
-                totalDepth: totalDepth, 
-                intervalMinutes 
-            };
-        }
-
-        // FIXED: PARSE DATE FUNCTION FOR DDMMYYYYHHMM
-        function parseDate(str) {
-            if (!str || str.length < 12) return new Date();
-            let dd = parseInt(str.substring(0,2)),
-                mm = parseInt(str.substring(2,4)) - 1,
-                yyyy = parseInt(str.substring(4,8)),
-                hh = parseInt(str.substring(8,10)),
-                min = parseInt(str.substring(10,12));
-            return new Date(yyyy, mm, dd, hh, min);
-            const depths = rawIntensity.map(intensity => intensity * (intervalMinutes / 60));
-            return { labels, values: rawIntensity, depths, totalDepth: depths.reduce((a, b) => a + b, 0), intervalMinutes };
-        }
-
-        function getStepLabel(baseDate, step, interval) {
-            let current = new Date(baseDate.getTime() + (step * interval * 60 * 1000));
-            let day = current.getDate().toString().padStart(2, '0');
-            let year = current.getFullYear();
-            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            let month = months[current.getMonth()];
-            let hh = current.getHours().toString().padStart(2, '0');
-            let mm = current.getMinutes().toString().padStart(2, '0');
-            return `${day} ${month} ${year} ${hh}:${mm}`;
-        }
-
-        function populateMonitorDropdown() {
-            monitorSelector.innerHTML = '<option value="">-- No Monitor Station Selected --</option>';
-            const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-            sortedFdvKeys.forEach(key => {
-                const opt = document.createElement('option');
-                opt.value = key;
-                opt.textContent = key.replace(/\.[fF][dD][vV]$/, '');
-                monitorSelector.appendChild(opt);
-            });
-            if (activeFdvKey) {
-                monitorSelector.value = activeFdvKey;
-            }
-            if (activeFdvKey) monitorSelector.value = activeFdvKey;
-        }
-
-        function populateRainDropdown() {
-            const previousSelection = rainSelector.value;
-            rainSelector.innerHTML = '<option value="">-- No Rainfall Profile Selected --</option>';
-
-            const sortedRainKeys = Object.keys(rainDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-            sortedRainKeys.forEach(key => {
-                const opt = document.createElement('option');
-                opt.value = key;
-                opt.textContent = key;
-                rainSelector.appendChild(opt);
-            });
-            if (rainDatabase[previousSelection]) {
-                rainSelector.value = previousSelection;
-            }
-            if (rainDatabase[previousSelection]) rainSelector.value = previousSelection;
-        }
-
-        monitorSelector.addEventListener('change', (e) => {
-            if (e.target.value) {
-                switchToFilePage(e.target.value);
-            }
-        });
-        rainSelector.addEventListener('change', () => {
-            updateRainfallChartTrack();
-            renderCumulativeComparisonChart();
-            calculateAndPopulateStats();
-        });
-        monitorSelector.addEventListener('change', (e) => { if (e.target.value) switchToFilePage(e.target.value); });
-        rainSelector.addEventListener('change', () => { updateRainfallChartTrack(); renderCumulativeComparisonChart(); calculateAndPopulateStats(); });
-
-        function navigateMonitor(direction) {
-            const keys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-            if (keys.length === 0) return;
-            let currentIndex = keys.indexOf(activeFdvKey);
-            if (currentIndex === -1) currentIndex = 0;
-            let nextIndex = currentIndex + direction;
-            if (nextIndex < 0) nextIndex = keys.length - 1; 
-            if (nextIndex >= keys.length) nextIndex = 0; 
-            switchToFilePage(keys[nextIndex]);
-        }
-
-        prevMonitorBtn.addEventListener('click', () => navigateMonitor(-1));
-        nextMonitorBtn.addEventListener('click', () => navigateMonitor(1));
-        titlePrevMonitorBtn.addEventListener('click', () => navigateMonitor(-1));
-        titleNextMonitorBtn.addEventListener('click', () => navigateMonitor(1));
-
-        function switchToFilePage(fdvKey) {
-            if (!fdvKey || !fdvDatabase[fdvKey]) return;
-            activeFdvKey = fdvKey;
-
-            const fdvData = fdvDatabase[fdvKey];
-            const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
-
-            activeMonitorHeader.textContent = cleanDisplayLabel;
-            activeMonitorHeader.textContent = fdvKey.replace(/\.[fF][dD][vV]$/, '');
-            activeMonitorHeaderWrapper.style.display = 'flex';
-
-            pipeSizeDisplayBox.textContent = fdvData.pipeSize;
-
-            if (monitorSelector.value !== fdvKey) {
-                monitorSelector.value = fdvKey;
-            }
-
-            if (monitorSelector.value !== fdvKey) monitorSelector.value = fdvKey;
-            hydraulicChartsWrapper.style.display = 'block';
-            renderPane('depthChart', fdvData.labels, fdvData.depth, 'Depth (mm)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'depth');
-            renderPane('flowChart', fdvData.labels, fdvData.flow, 'Flow (lit/sec)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'flow');
-            renderPane('velocityChart', fdvData.labels, fdvData.velocity, 'Velocity (m/s)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'velocity');
-
-            updateRainfallChartTrack();
-            renderCumulativeComparisonChart();
-            renderScatterCorrelationChart();
-            calculateAndPopulateStats();
-        }
-
-        function updateRainfallChartTrack() {
-            const selectedRainKey = rainSelector.value;
-            const rainPane = document.getElementById('rainPane');
-
-            if (selectedRainKey && rainDatabase[selectedRainKey]) {
-                rainPane.style.display = 'block';
-                const rainData = rainDatabase[selectedRainKey];
-                renderPane('rainChart', rainData.labels, rainData.values, 'Intensity (mm/hr)', '#1e3a8a', '#1e3a8a', 'rain', true);
-            } else {
-                rainPane.style.display = 'none';
-                if (charts.rain) { charts.rain.destroy(); charts.rain = null; }
-            }
-        }
-
-        function renderCumulativeComparisonChart() {
-            const rainKeys = Object.keys(rainDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-            if (rainKeys.length === 0) {
-                cumulativePane.style.display = 'none';
-                if (charts.cumulative) { charts.cumulative.destroy(); charts.cumulative = null; }
-                return;
-            }
-
-            cumulativePane.style.display = 'block';
-
-            let targetLabels = [];
-            if (activeFdvKey && fdvDatabase[activeFdvKey]) {
-                targetLabels = fdvDatabase[activeFdvKey].labels;
-            } else if (rainDatabase[rainKeys[0]]) {
-                targetLabels = rainDatabase[rainKeys[0]].labels;
-            }
-
-            const datasets = [];
-            rainKeys.forEach((gaugeKey, index) => {
-            let targetLabels = (activeFdvKey && fdvDatabase[activeFdvKey]) ? fdvDatabase[activeFdvKey].labels : rainDatabase[rainKeys[0]].labels;
-            const datasets = rainKeys.map((gaugeKey, index) => {
-                const rainData = rainDatabase[gaugeKey];
-                let runningSum = 0;
-                const cumulativeValues = [];
-
-                for (let i = 0; i < targetLabels.length; i++) {
-                    const rawVal = rainData.depths[i];
-                    if (rawVal !== undefined && !isNaN(rawVal)) {
-                        runningSum += rawVal;
-                    }
-                    cumulativeValues.push(runningSum);
-                }
-
-                const color = lineColorsPalette[index % lineColorsPalette.length];
-
-                datasets.push({
-                    label: `${gaugeKey} (${runningSum.toFixed(2)} mm)`,
-                    data: cumulativeValues,
-                    borderColor: color,
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    fill: false
-                const cumulativeValues = targetLabels.map((_, i) => {
-                    const rawVal = rainData.depths[i] || 0;
-                    runningSum += rawVal;
-                    return runningSum;
+                    values.push(
+                        parseFloat(n)
+                    );
                 });
-                return { label: `${gaugeKey} (${runningSum.toFixed(2)} mm)`, data: cumulativeValues, borderColor: lineColorsPalette[index % lineColorsPalette.length], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: false };
-            });
+            }
+        }
+    }
 
-            const ctx = document.getElementById('cumulativeChart').getContext('2d');
-            if (charts.cumulative) charts.cumulative.destroy();
+    const timestamps = [];
 
-            charts.cumulative = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: targetLabels,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: { padding: { bottom: 20 } },
-                    scales: {
-                        x: { 
-                            grid: { display: true, drawOnChartArea: false, drawTicks: true, tickLength: 6, tickColor: '#94a3b8' }, 
-                            ticks: { 
-                                maxTicksLimit: 4, 
-                                color: '#64748b', 
-                                font: { size: 9 },
-                                callback: function(value) {
-                                    let lbl = this.getLabelForValue(value);
-                                    if (lbl && typeof lbl === 'string') {
-                                        let parts = lbl.split(' ');
-                                        if (parts.length >= 3) return parts[0] + ' ' + parts[1] + ' ' + parts[2];
-                                    }
-                                    return lbl;
-                                }
-                            } 
-                        },
-                        y: { 
-                            grid: { color: '#f1f5f9' }, 
-                            ticks: { color: '#334155', font: { size: 10 } }, 
-                            title: { display: true, text: 'Total (mm)', font: { weight: 'bold', size: 10 } }
-                        }
-                    },
-                    plugins: { 
-                        legend: { 
-                            display: true,
-                            position: 'top',
-                            labels: {
-                                boxWidth: 10,
-                                font: { size: 10, weight: '500' },
-                                color: '#334155',
-                                padding: 8
-                            }
-                        }, 
-                        tooltip: { mode: 'index', intersect: false } 
+    const intervalMs =
+        intervalMinutes *
+        60 *
+        1000;
+
+    for(let i=0;i<values.length;i++){
+
+        timestamps.push(
+
+            new Date(
+                startDate.getTime() +
+                i * intervalMs
+            )
+        );
+    }
+
+    let cumulative = [];
+
+    let running = 0;
+
+    values.forEach(v => {
+
+        running +=
+            (v * intervalMinutes) / 60;
+
+        cumulative.push(running);
+    });
+
+    return {
+
+        fileName,
+
+        timestamps,
+
+        intensity:values,
+
+        cumulative,
+
+        intervalMinutes
+    };
+}
+
+/* =========================================================
+   FDV PARSER
+========================================================= */
+
+function processFdvFile(text,fileName){
+
+    const lines =
+        text.split(/\r?\n/);
+
+    let startDate = null;
+    let intervalMinutes = 2;
+
+    let insideConstants = false;
+    let insideData = false;
+
+    let depth = [];
+    let flow = [];
+    let velocity = [];
+
+    for(let line of lines){
+
+        const clean = line.trim();
+
+        if(clean.includes('*CSTART')){
+            insideConstants = true;
+            continue;
+        }
+
+        if(clean.includes('*CEND')){
+            insideConstants = false;
+            insideData = true;
+            continue;
+        }
+
+        if(insideConstants){
+
+            const match =
+                clean.match(
+                    /(\d{10})\s+(\d{10})\s+(\d+)/
+                );
+
+            if(match){
+
+                startDate =
+                    parseTelemetryDate(match[1]);
+
+                intervalMinutes =
+                    parseInt(match[3]);
+            }
+        }
+
+        else if(insideData){
+
+            const nums =
+                clean.match(/-?\d+\.?\d*/g);
+
+            if(nums){
+
+                for(let i=0;i<nums.length;i+=3){
+
+                    if(i+2 < nums.length){
+
+                        depth.push(
+                            parseFloat(nums[i])
+                        );
+
+                        flow.push(
+                            parseFloat(nums[i+1])
+                        );
+
+                        velocity.push(
+                            parseFloat(nums[i+2])
+                        );
                     }
                 }
-            });
-            charts.cumulative = new Chart(ctx, { type: 'line', data: { labels: targetLabels, datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: true, drawOnChartArea: false }, ticks: { maxTicksLimit: 4, color: '#64748b', font: { size: 9 } } }, y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 10 } } } }, plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } } } });
+            }
         }
+    }
 
-        function renderScatterCorrelationChart() {
-            if (!activeFdvKey || !fdvDatabase[activeFdvKey]) {
-                scatterPane.style.display = 'none';
-                if (charts.scatter) {charts.scatter.destroy(); charts.scatter = null;}
-                return;
+    const timestamps = [];
+
+    const intervalMs =
+        intervalMinutes *
+        60 *
+        1000;
+
+    for(let i=0;i<depth.length;i++){
+
+        timestamps.push(
+
+            new Date(
+                startDate.getTime() +
+                i * intervalMs
+            )
+        );
+    }
+
+    return {
+
+        fileName,
+
+        timestamps,
+
+        depth,
+
+        flow,
+
+        velocity,
+
+        intervalMinutes
+    };
+}
+
+/* =========================================================
+   RAINFALL SYNCHRONIZATION
+========================================================= */
+
+function synchronizeRainfallToFdv(
+    fdvData,
+    rainData
+){
+
+    const rainMap =
+        new Map();
+
+    for(let i=0;i<rainData.timestamps.length;i++){
+
+        rainMap.set(
+
+            rainData.timestamps[i].getTime(),
+
+            rainData.intensity[i]
+        );
+    }
+
+    const syncedIntensity = [];
+    const syncedTimestamps = [];
+    const syncedCumulative = [];
+
+    let cumulative = 0;
+
+    fdvData.timestamps.forEach(ts => {
+
+        const key =
+            ts.getTime();
+
+        const val =
+            rainMap.has(key)
+            ? rainMap.get(key)
+            : 0;
+
+        syncedIntensity.push(val);
+
+        cumulative +=
+            (val * fdvData.intervalMinutes) / 60;
+
+        syncedCumulative.push(cumulative);
+
+        syncedTimestamps.push(ts);
+    });
+
+    return {
+
+        ...rainData,
+
+        timestamps:syncedTimestamps,
+
+        intensity:syncedIntensity,
+
+        cumulative:syncedCumulative
+    };
+}
+
+/* =========================================================
+   HANDLE FILES
+========================================================= */
+
+function handleFiles(files){
+
+    fdvDatabase = {};
+    rainDatabase = {};
+
+    statusDiv.innerText =
+        'Processing files...';
+
+    let processed = 0;
+
+    for(let file of files){
+
+        const reader =
+            new FileReader();
+
+        reader.onload = e => {
+
+            const text =
+                e.target.result;
+
+            const upper =
+                file.name.toUpperCase();
+
+            if(
+                upper.endsWith('.R')
+            ){
+
+                rainDatabase[file.name] =
+                    processRainFile(
+                        text,
+                        file.name
+                    );
             }
 
-            scatterPane.style.display = 'block';
-            const fdvData = fdvDatabase[activeFdvKey];
-            const cleanDisplayLabel = activeFdvKey.replace(/\.[fF][dD][vV]$/, '');
+            else {
 
-            const coordinatePairs = [];
-            for (let i = 0; i < fdvData.depth.length; i++) {
-                coordinatePairs.push({ x: fdvData.velocity[i], y: fdvData.depth[i] });
+                fdvDatabase[file.name] =
+                    processFdvFile(
+                        text,
+                        file.name
+                    );
             }
 
-            const ctx = document.getElementById('scatterChart').getContext('2d');
-            if (charts.scatter) charts.scatter.destroy();
-            charts.scatter = new Chart(ctx, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: cleanDisplayLabel,
-                        data: coordinatePairs,
-                        backgroundColor: 'rgba(239, 68, 68, 0.5)',
-                        borderColor: '#ef4444',
-                        pointRadius: 2.5,
-                        pointHoverRadius: 5
-                    }]
+            processed++;
+
+            if(processed === files.length){
+
+                finalizeData();
+            }
+        };
+
+        reader.readAsText(file);
+    }
+}
+
+/* =========================================================
+   FINALIZE
+========================================================= */
+
+function finalizeData(){
+
+    const fdvKeys =
+        Object.keys(fdvDatabase);
+
+    const rainKeys =
+        Object.keys(rainDatabase);
+
+    monitorSelector.innerHTML = '';
+    rainSelector.innerHTML = '';
+
+    fdvKeys.forEach(key => {
+
+        const opt =
+            document.createElement('option');
+
+        opt.value = key;
+        opt.textContent = key;
+
+        monitorSelector.appendChild(opt);
+    });
+
+    rainKeys.forEach(key => {
+
+        const opt =
+            document.createElement('option');
+
+        opt.value = key;
+        opt.textContent = key;
+
+        rainSelector.appendChild(opt);
+    });
+
+    workspace.style.display = 'block';
+
+    statusDiv.innerText =
+        'Files loaded successfully';
+
+    renderCurrentMonitor();
+}
+
+/* =========================================================
+   RENDER MONITOR
+========================================================= */
+
+function renderCurrentMonitor(){
+
+    const fdvKey =
+        monitorSelector.value ||
+        Object.keys(fdvDatabase)[0];
+
+    const rainKey =
+        rainSelector.value ||
+        Object.keys(rainDatabase)[0];
+
+    const fdv =
+        fdvDatabase[fdvKey];
+
+    const rain =
+        synchronizeRainfallToFdv(
+            fdv,
+            rainDatabase[rainKey]
+        );
+
+    monitorHeader.innerText =
+        fdvKey.replace('.fdv','');
+
+    const isDepthMonitor =
+        fdvKey.toUpperCase().startsWith('DM');
+
+    const labels =
+        fdv.timestamps.map(formatDate);
+
+    /* =====================================================
+       CHARTS
+    ===================================================== */
+
+    createChart(
+        'rainChart',
+        'bar',
+        labels,
+        rain.intensity,
+        '#2563eb'
+    );
+
+    createChart(
+        'cumulativeChart',
+        'line',
+        labels,
+        rain.cumulative,
+        '#2563eb'
+    );
+
+    createChart(
+        'depthChart',
+        'line',
+        labels,
+        fdv.depth,
+        '#1e3a8a'
+    );
+
+    createChart(
+        'flowChart',
+        'line',
+        labels,
+        fdv.flow,
+        isDepthMonitor
+            ? '#94a3b8'
+            : '#16a34a'
+    );
+
+    createChart(
+        'velocityChart',
+        'line',
+        labels,
+        fdv.velocity,
+        isDepthMonitor
+            ? '#94a3b8'
+            : '#dc2626'
+    );
+
+    renderScatter(
+        fdv,
+        isDepthMonitor
+    );
+
+    /* =====================================================
+       DISABLED PANES
+    ===================================================== */
+
+    document
+        .getElementById('flowPane')
+        .classList.toggle(
+            'disabled-pane',
+            isDepthMonitor
+        );
+
+    document
+        .getElementById('velocityPane')
+        .classList.toggle(
+            'disabled-pane',
+            isDepthMonitor
+        );
+
+    document
+        .getElementById('scatterPane')
+        .classList.toggle(
+            'disabled-pane',
+            isDepthMonitor
+        );
+
+    updateStats(fdv,rain);
+}
+
+/* =========================================================
+   CHART CREATOR
+========================================================= */
+
+function createChart(
+    canvasId,
+    type,
+    labels,
+    data,
+    color
+){
+
+    if(charts[canvasId]){
+        charts[canvasId].destroy();
+    }
+
+    const ctx =
+        document
+        .getElementById(canvasId)
+        .getContext('2d');
+
+    charts[canvasId] =
+        new Chart(ctx,{
+
+            type,
+
+            data:{
+
+                labels,
+
+                datasets:[{
+
+                    data,
+
+                    borderColor:color,
+
+                    backgroundColor:
+                        type === 'bar'
+                        ? color
+                        : 'transparent',
+
+                    borderWidth:1.5,
+
+                    pointRadius:0
+                }]
+            },
+
+            options:{
+
+                responsive:true,
+
+                maintainAspectRatio:false,
+
+                animation:false,
+
+                plugins:{
+                    legend:{
+                        display:false
+                    }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: { padding: { bottom: 15 } },
-                    scales: {
-                        x: {
-                            grid: { display: true, drawOnChartArea: false, drawTicks: true, tickLength: 6, tickColor: '#94a3b8' },
-                            ticks: { color: '#334155', font: { size: 9 } },
-                            title: { display: true, text: 'Velocity (m/s)', font: { weight: 'bold', size: 10 }, padding: { top: 10 } }
-                        },
-                        y: {
-                            grid: { color: '#f1f5f9' },
-                            ticks: { color: '#334155', font: { size: 9 } },
-                            title: { display: true, text: 'Depth (mm)', font: { weight: 'bold', size: 10 } }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) { return `Vel: ${context.parsed.x} m/s | Depth: ${context.parsed.y} mm`; }
-                            }
+
+                scales:{
+
+                    x:{
+                        ticks:{
+                            maxTicksLimit:8
                         }
                     }
                 }
-            });
-            charts.scatter = new Chart(ctx, { type: 'scatter', data: { datasets: [{ label: activeFdvKey, data: fdvData.velocity.map((v, i) => ({ x: v, y: fdvData.depth[i] })), backgroundColor: 'rgba(239, 68, 68, 0.5)', borderColor: '#ef4444', pointRadius: 2.5 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Velocity (m/s)', font: { weight: 'bold', size: 10 } } }, y: { title: { display: true, text: 'Depth (mm)', font: { weight: 'bold', size: 10 } } } }, plugins: { legend: { display: false } } } });
-        }
-
-        function calculateAndPopulateStats() {
-            let activeLabels = [];
-            let hasData = false;
-            let totalRainSum = 0;
-            let calculatedVolumeM3 = 0;
-
-            document.getElementById('tblTimeRange').textContent = "0000-00-00 00:00:00 - 0000-00-00 00:00:00";
-            document.getElementById('tblTimeRange').textContent = "-";
-            document.getElementById('tblTotalRain').textContent = "0.000";
-            document.getElementById('tblTotalVolume').textContent = "0.000";
-
-            ['Rain', 'Depth', 'Flow', 'Vel'].forEach(p => {
-                document.getElementById(`mMin${p}`).textContent = "0";
-                document.getElementById(`mMax${p}`).textContent = "0";
-                document.getElementById(`mAvg${p}`).textContent = "0";
-            });
-
-            if (activeFdvKey && fdvDatabase[activeFdvKey]) {
-                const fdv = fdvDatabase[activeFdvKey];
-                activeLabels = fdv.labels;
-                hasData = true;
-
-                const flowStats = computeArrayMetrics(fdv.flow);
-                document.getElementById('mMinFlow').textContent = flowStats.min.toFixed(3);
-                document.getElementById('mMaxFlow').textContent = flowStats.max.toFixed(3);
-                document.getElementById('mAvgFlow').textContent = flowStats.avg.toFixed(3);
-
-                const depthStats = computeArrayMetrics(fdv.depth);
-                document.getElementById('mMinDepth').textContent = depthStats.min.toFixed(2);
-                document.getElementById('mMaxDepth').textContent = depthStats.max.toFixed(2);
-                document.getElementById('mAvgDepth').textContent = depthStats.avg.toFixed(2);
-
-                const velStats = computeArrayMetrics(fdv.velocity);
-                document.getElementById('mMinVel').textContent = velStats.min.toFixed(2);
-                document.getElementById('mMaxVel').textContent = velStats.max.toFixed(2);
-                document.getElementById('mAvgVel').textContent = velStats.avg.toFixed(2);
-
-                let timeStepSeconds = (fdv.intervalMinutes || 2) * 60;
-                let integratedLiters = fdv.flow.reduce((acc, curr) => acc + (isNaN(curr) ? 0 : curr), 0) * timeStepSeconds;
-                calculatedVolumeM3 = integratedLiters / 1000;
-                document.getElementById('tblTotalVolume').textContent = calculatedVolumeM3.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3});
-                document.getElementById('tblTotalVolume').textContent = (fdv.flow.reduce((a, b) => a + (isNaN(b) ? 0 : b), 0) * (fdv.intervalMinutes || 2) * 0.06).toFixed(3);
             }
+        });
+}
 
-            const selectedRainKey = rainSelector.value;
-            if (selectedRainKey && rainDatabase[selectedRainKey]) {
-                const rain = rainDatabase[selectedRainKey];
-                if (activeLabels.length === 0) activeLabels = rain.labels;
-                hasData = true;
+/* =========================================================
+   SCATTER PLOT
+========================================================= */
 
-                const rainStats = computeArrayMetrics(rain.values);
-                document.getElementById('mMinRain').textContent = rainStats.min.toFixed(1);
-                document.getElementById('mMaxRain').textContent = rainStats.max.toFixed(1);
-                document.getElementById('mAvgRain').textContent = rainStats.avg.toFixed(2);
+function renderScatter(
+    fdv,
+    isDepthMonitor
+){
 
-                const depthMetricStats = computeArrayMetrics(rain.depths);
-                document.getElementById('mMinDepth').textContent = depthMetricStats.min.toFixed(2);
-                document.getElementById('mMaxDepth').textContent = depthMetricStats.max.toFixed(2);
-                document.getElementById('mAvgDepth').textContent = depthMetricStats.avg.toFixed(3);
+    if(charts.scatterChart){
+        charts.scatterChart.destroy();
+    }
 
-                totalRainSum = rain.totalDepth;
-                document.getElementById('tblTotalRain').textContent = totalRainSum.toFixed(3);
-            }
+    const ctx =
+        document
+        .getElementById('scatterChart')
+        .getContext('2d');
 
-            if (hasData && activeLabels.length > 0) {
-                document.getElementById('tblTimeRange').textContent = `${activeLabels[0]} - ${activeLabels[activeLabels.length - 1]}`;
-                document.getElementById('tblTotalRain').textContent = rain.totalDepth.toFixed(3);
-            }
-            if (activeLabels.length > 0) document.getElementById('tblTimeRange').textContent = `${activeLabels[0]} - ${activeLabels[activeLabels.length - 1]}`;
-        }
+    const points = [];
 
-        function computeArrayMetrics(arr) {
-            if (!arr || arr.length === 0) return { min: 0, max: 0, avg: 0 };
-            let min = Infinity, max = -Infinity, sum = 0, count = 0;
-            for (let i = 0; i < arr.length; i++) {
-                const val = arr[i];
-                if (val !== undefined && !isNaN(val)) {
-                    if (val < min) min = val;
-                    if (val > max) max = val;
-                    sum += val;
-                    count++;
+    for(let i=0;i<fdv.depth.length;i++){
+
+        points.push({
+
+            x:fdv.depth[i],
+
+            y:fdv.velocity[i]
+        });
+    }
+
+    charts.scatterChart =
+        new Chart(ctx,{
+
+            type:'scatter',
+
+            data:{
+
+                datasets:[{
+
+                    data:points,
+
+                    backgroundColor:
+                        isDepthMonitor
+                        ? '#94a3b8'
+                        : '#dc2626',
+
+                    pointRadius:2
+                }]
+            },
+
+            options:{
+
+                responsive:true,
+
+                maintainAspectRatio:false,
+
+                animation:false,
+
+                plugins:{
+                    legend:{
+                        display:false
+                    }
                 }
             }
-            return {
-                min: min === Infinity ? 0 : min, max: max === -Infinity ? 0 : max, avg: count === 0 ? 0 : (sum / count)
-            };
-            const clean = arr.filter(v => !isNaN(v));
-            if (clean.length === 0) return { min: 0, max: 0, avg: 0 };
-            return { min: Math.min(...clean), max: Math.max(...clean), avg: clean.reduce((a, b) => a + b, 0) / clean.length };
+        });
+}
+
+/* =========================================================
+   STATS
+========================================================= */
+
+function updateStats(fdv,rain){
+
+    function min(arr){
+        return Math.min(...arr).toFixed(2);
+    }
+
+    function max(arr){
+        return Math.max(...arr).toFixed(2);
+    }
+
+    function avg(arr){
+
+        return (
+            arr.reduce((a,b)=>a+b,0) /
+            arr.length
+        ).toFixed(2);
+    }
+
+    document.getElementById(
+        'timeRangeCell'
+    ).innerText =
+
+        `${formatDate(fdv.timestamps[0])}
+         - 
+         ${formatDate(
+            fdv.timestamps[
+                fdv.timestamps.length-1
+            ]
+         )}`;
+
+    document.getElementById(
+        'rainTotalCell'
+    ).innerText =
+
+        rain.cumulative[
+            rain.cumulative.length-1
+        ].toFixed(2);
+
+    document.getElementById(
+        'flowTotalCell'
+    ).innerText =
+
+        (
+            fdv.flow.reduce((a,b)=>a+b,0)
+        ).toFixed(2);
+
+    /* MIN */
+
+    document.getElementById(
+        'minRain'
+    ).innerText = min(rain.intensity);
+
+    document.getElementById(
+        'minDepth'
+    ).innerText = min(fdv.depth);
+
+    document.getElementById(
+        'minFlow'
+    ).innerText = min(fdv.flow);
+
+    document.getElementById(
+        'minVelocity'
+    ).innerText = min(fdv.velocity);
+
+    /* AVG */
+
+    document.getElementById(
+        'avgRain'
+    ).innerText = avg(rain.intensity);
+
+    document.getElementById(
+        'avgDepth'
+    ).innerText = avg(fdv.depth);
+
+    document.getElementById(
+        'avgFlow'
+    ).innerText = avg(fdv.flow);
+
+    document.getElementById(
+        'avgVelocity'
+    ).innerText = avg(fdv.velocity);
+
+    /* MAX */
+
+    document.getElementById(
+        'maxRain'
+    ).innerText = max(rain.intensity);
+
+    document.getElementById(
+        'maxDepth'
+    ).innerText = max(fdv.depth);
+
+    document.getElementById(
+        'maxFlow'
+    ).innerText = max(fdv.flow);
+
+    document.getElementById(
+        'maxVelocity'
+    ).innerText = max(fdv.velocity);
+}
+
+/* =========================================================
+   EVENTS
+========================================================= */
+
+monitorSelector.addEventListener(
+    'change',
+    renderCurrentMonitor
+);
+
+rainSelector.addEventListener(
+    'change',
+    renderCurrentMonitor
+);
+
+document
+    .getElementById('prevMonitorBtn')
+    .addEventListener('click', () => {
+
+        const keys =
+            Object.keys(fdvDatabase);
+
+        activeMonitorIndex--;
+
+        if(activeMonitorIndex < 0){
+            activeMonitorIndex =
+                keys.length - 1;
         }
 
-        function renderPane(canvasId, labels, data, labelTitle, primaryColor, fillBG, key, invertY = false) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            if (charts[key]) charts[key].destroy();
-            charts[key] = new Chart(ctx, {
-                type: invertY ? 'bar' : 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{ data: data, borderColor: primaryColor, backgroundColor: fillBG, borderWidth: invertY ? 0 : 1.5, 
-                    barPercentage: 1.0, categoryPercentage: 1.0, pointRadius: 0, fill: true, tension: 0.02 }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    layout: { padding: { bottom: 20 } },
-                    scales: {
-                        x: { 
-                            grid: { display: true, drawOnChartArea: false, drawTicks: true, tickLength: 6, tickColor: '#94a3b8' }, 
-                            ticks: { 
-                                maxTicksLimit: 10, 
-                                color: '#64748b', 
-                                font: { size: 10 },
-                                callback: function(value) {
-                                    let lbl = this.getLabelForValue(value);
-                                    if (lbl && typeof lbl === 'string') {
-                                        let parts = lbl.split(' ');
-                                        if (parts.length >= 3) return parts[0] + ' ' + parts[1] + ' ' + parts[2];
-                                    }
-                                    return lbl;
-                                }
-                            } 
-                        },
-                        y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 11 } }, title: { display: true, text: labelTitle, 
-                        font: { weight: 'bold', size: 11 } }, reverse: invertY }
-                    },
-                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
-                }
-            });
-            charts[key] = new Chart(ctx, { type: invertY ? 'bar' : 'line', data: { labels: labels, datasets: [{ data: data, borderColor: primaryColor, backgroundColor: fillBG, borderWidth: invertY ? 0 : 1.5, pointRadius: 0, fill: true, tension: 0.02 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: true, drawOnChartArea: false }, ticks: { maxTicksLimit: 10, color: '#64748b', font: { size: 10 } } }, y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 11 } }, title: { display: true, text: labelTitle, font: { weight: 'bold', size: 11 } }, reverse: invertY } }, plugins: { legend: { display: false } } } });
+        monitorSelector.value =
+            keys[activeMonitorIndex];
+
+        renderCurrentMonitor();
+    });
+
+document
+    .getElementById('nextMonitorBtn')
+    .addEventListener('click', () => {
+
+        const keys =
+            Object.keys(fdvDatabase);
+
+        activeMonitorIndex++;
+
+        if(activeMonitorIndex >= keys.length){
+            activeMonitorIndex = 0;
         }
-    </script>
+
+        monitorSelector.value =
+            keys[activeMonitorIndex];
+
+        renderCurrentMonitor();
+    });
+
+</script>
+
 </body>
 </html>
