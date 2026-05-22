@@ -7,11 +7,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #222; background-color: #f8fafc; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-
+        
         /* Main Workspace Content Arena */
         .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100%; min-width: 0; padding: 0; }
         .top-banner { background: #fff; padding: 10px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; min-height: 20px; }
-
+        
         /* Large Bold Red Center-Aligned Target Identifier Title Wrapper and Buttons */
         .active-monitor-header-wrapper { display: none; justify-content: center; align-items: center; gap: 24px; margin: 0 0 20px 0; width: 100%; user-select: none; }
         .active-monitor-header { font-size: 26px; font-weight: 800; color: #ef4444; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; }
@@ -24,7 +24,7 @@
         .upload-zone:hover { background: #f0f9ff; border-color: #0284c7; }
         #fileInput { display: none; }
         .btn { background: #0284c7; color: white; padding: 10px 20px; border-radius: 4px; cursor: pointer; display: inline-block; font-weight: bold; font-size: 13px; text-decoration: none; pointer-events: none; }
-
+        
         /* Compact Multi-Line Gauge Control Panel Box */
         .gauge-control-panel { display: flex; flex-direction: column; gap: 6px; background: #f1f5f9; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; }
         .gauge-control-panel span { font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -44,16 +44,16 @@
         /* LAYOUT GRID SYSTEM WITH MAXIMUM WIDTH */
         .workspace-view { display: none; padding: 25px; box-sizing: border-box; width: 100%; }
         .workspace-layout { display: flex; gap: 25px; align-items: flex-start; }
-
+        
         .graph-section-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .auxiliary-section-column { width: 340px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; }
 
         .graph-pane { background: #fff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); height: 195px; position: relative; }
         .graph-pane.rain-pane { height: 145px; display: none; }
-
+        
         .graph-pane.cumulative-pane { border-top: 4px solid #3b82f6; height: 220px; margin-bottom: 0; }
         .graph-pane.scatter-pane { border-top: 4px solid #ef4444; height: 230px; margin-bottom: 0; }
-
+        
         h3 { margin: 0 0 8px 0; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
         .rain-pane h3 { color: #1e3a8a; }
         .cumulative-pane h3 { color: #2563eb; }
@@ -62,10 +62,10 @@
         /* CUSTOM METRIC TABLES BOTTOM LAYOUT WITH NAVY BLUE BORDERS */
         .stats-container-block { margin-top: 30px; margin-right: 2px; clear: both; display: flex; flex-direction: column; gap: 10px; background: #fff; border: 1.5px solid #1e3a8a; padding: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); box-sizing: border-box; }
         .stats-layout-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; }
-
+        
         .stats-layout-table th, .stats-layout-table td { border: 1px solid #1e3a8a; padding: 6px 10px; color: #1e293b; }
         .stats-layout-table th { background-color: #f0f4f8; font-weight: 600; color: #1e3a8a; font-size: 12px; }
-
+        
         .stats-layout-table .label-cell { background-color: #f0f4f8; font-weight: bold; width: 100px; text-align: center; color: #1e3a8a; }
         .stats-layout-table .hdr-main { font-weight: bold; }
     </style>
@@ -74,7 +74,7 @@
 
     <div class="main-content">
         <div class="top-banner"></div>
-
+        
         <div class="upload-zone" id="dropZone">
             <div class="btn">Select Files</div>
             <input type="file" id="fileInput" multiple>
@@ -83,7 +83,7 @@
         </div>
 
         <div class="workspace-view" id="workspaceView">
-
+            
             <div class="active-monitor-header-wrapper" id="activeMonitorHeaderWrapper">
                 <button class="title-nav-arrow-btn" id="titlePrevMonitorBtn" title="Previous Monitor">◀</button>
                 <div class="active-monitor-header" id="activeMonitorHeader"></div>
@@ -91,13 +91,13 @@
             </div>
 
             <div class="workspace-layout">
-
+                
                 <div class="graph-section-column">
                     <div class="graph-pane rain-pane" id="rainPane">
                         <h3>Rainfall Intensity (mm/hr)</h3>
                         <canvas id="rainChart"></canvas>
                     </div>
-
+                    
                     <div id="hydraulicChartsWrapper" style="display: none;">
                         <div class="graph-pane">
                             <h3>Depth (mm)</h3>
@@ -115,7 +115,7 @@
                 </div>
 
                 <div class="auxiliary-section-column">
-
+                    
                     <div class="gauge-control-panel" id="controlBar" style="display: none;">
                         <div class="dropdown-wrapper">
                             <span>Select Monitor Station:</span>
@@ -154,7 +154,7 @@
             </div>
 
             <div class="stats-container-block" id="statsContainerBlock">
-
+                
                 <table class="stats-layout-table">
                     <thead>
                         <tr>
@@ -251,12 +251,12 @@
         function handleFiles(files) {
             if (files.length === 0) return;
             statusDiv.textContent = `Sorting files into independent data pools...`;
-
+            
             let filesProcessed = 0;
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 const fileNameUpper = file.name.toUpperCase();
-
+                
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const contentText = e.target.result;
@@ -272,7 +272,7 @@
                             fdvDatabase[file.name] = parsedFdv;
                         }
                     }
-
+                    
                     filesProcessed++;
                     if (filesProcessed === files.length) {
                         const sortedFdvKeys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
@@ -282,7 +282,7 @@
 
                         populateMonitorDropdown();
                         populateRainDropdown();
-
+                        
                         if (Object.keys(fdvDatabase).length > 0 || Object.keys(rainDatabase).length > 0) {
                             dropZone.style.display = 'none';
                             workspaceView.style.display = 'block';
@@ -306,18 +306,6 @@
             }
         }
 
-        // --- UPDATED DATE PARSING LOGIC ---
-        // Expects format: DDMMYYHHMM (10 digits)
-        function parseDate(str) {
-            if (!str || str.length < 10) return new Date();
-            let dd = parseInt(str.substring(0, 2));
-            let mm = parseInt(str.substring(2, 4)) - 1;
-            let yy = parseInt("20" + str.substring(4, 6)); 
-            let hh = parseInt(str.substring(6, 8));
-            let min = parseInt(str.substring(8, 10));
-            return new Date(yy, mm, dd, hh, min);
-        }
-
         function processFdvFile(text, filename) {
             const lines = text.split(/\r?\n/);
             let startTimeStr = "", intervalMinutes = 2, inData = false, rawValues = [];
@@ -328,7 +316,7 @@
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
-
+                
                 if (line.startsWith('*CSTART')) {
                     if (isDM) {
                         pipeSize = "N/A";
@@ -343,33 +331,28 @@
                                 pipeSize = cleanParam;
                             }
                         }
-                        let cleanParam = paramLine1.replace(/[*#]/g, '').trim();
-                        let sizeMatch = cleanParam.match(/\d+/);
-                        pipeSize = sizeMatch ? sizeMatch[0] + "mm" : cleanParam;
                     }
 
                     let paramLine1ForTime = lines[i+1] ? lines[i+1].trim() : "";
                     let paramLineNext = lines[i+2] ? lines[i+2].trim() : "";
-
+                    
                     // FIXED: REGEX TO CAPTURE 12 DIGIT DATE (DDMMYYYYHHMM)
                     let match = paramLineNext.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
-                    let match = paramLineNext.match(/(\d{10})\s+\d{10}\s+(\d+)/);
                     if (!match && paramLine1ForTime) {
                         match = paramLine1ForTime.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
-                        match = paramLine1ForTime.match(/(\d{10})\s+\d{10}\s+(\d+)/);
                     }
                     if (match) { 
                         startTimeStr = match[1];
                         intervalMinutes = parseInt(match[2]); 
                     }
                 }
-
+                
                 if (line.startsWith('*CEND')) { inData = true; continue; }
                 if (inData) {
                     line.split(/\s+/).forEach(t => { let v = parseFloat(t); if (!isNaN(v)) rawValues.push(v); });
                 }
             }
-
+            
             if (!pipeSize) pipeSize = isDM ? "N/A" : "Unknown Size";
             if (rawValues.length < 3) return null;
             let baseDate = parseDate(startTimeStr);
@@ -394,7 +377,6 @@
                     let paramLine2 = lines[i+1] ? lines[i+1].trim() : "";
                     // FIXED: REGEX TO CAPTURE 12 DIGIT DATE (DDMMYYYYHHMM)
                     let match = paramLine2.match(/^(\d{12})\s+\d{10}\s+(\d+)/);
-                    let match = paramLine2.match(/(\d{10})\s+\d{10}\s+(\d+)/);
                     if (match) { startTimeStr = match[1]; intervalMinutes = parseInt(match[2]); }
                 }
                 if (line.startsWith('*CEND')) { inData = true; continue; }
@@ -404,7 +386,7 @@
             }
             if (rawValues.length === 0) return null;
             let baseDate = parseDate(startTimeStr);
-
+            
             const labels = [], rawIntensity = [];
             rawValues.forEach((val, step) => {
                 labels.push(getStepLabel(baseDate, step, intervalMinutes));
@@ -431,8 +413,6 @@
                 hh = parseInt(str.substring(8,10)),
                 min = parseInt(str.substring(10,12));
             return new Date(yyyy, mm, dd, hh, min);
-            const depths = rawIntensity.map(intensity => intensity * (intervalMinutes / 60));
-            return { labels, values: rawIntensity, depths, totalDepth: depths.reduce((a, b) => a + b, 0), intervalMinutes };
         }
 
         function getStepLabel(baseDate, step, interval) {
@@ -458,7 +438,6 @@
             if (activeFdvKey) {
                 monitorSelector.value = activeFdvKey;
             }
-            if (activeFdvKey) monitorSelector.value = activeFdvKey;
         }
 
         function populateRainDropdown() {
@@ -475,7 +454,6 @@
             if (rainDatabase[previousSelection]) {
                 rainSelector.value = previousSelection;
             }
-            if (rainDatabase[previousSelection]) rainSelector.value = previousSelection;
         }
 
         monitorSelector.addEventListener('change', (e) => {
@@ -488,8 +466,6 @@
             renderCumulativeComparisonChart();
             calculateAndPopulateStats();
         });
-        monitorSelector.addEventListener('change', (e) => { if (e.target.value) switchToFilePage(e.target.value); });
-        rainSelector.addEventListener('change', () => { updateRainfallChartTrack(); renderCumulativeComparisonChart(); calculateAndPopulateStats(); });
 
         function navigateMonitor(direction) {
             const keys = Object.keys(fdvDatabase).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
@@ -515,7 +491,6 @@
             const cleanDisplayLabel = fdvKey.replace(/\.[fF][dD][vV]$/, '');
             
             activeMonitorHeader.textContent = cleanDisplayLabel;
-            activeMonitorHeader.textContent = fdvKey.replace(/\.[fF][dD][vV]$/, '');
             activeMonitorHeaderWrapper.style.display = 'flex';
 
             pipeSizeDisplayBox.textContent = fdvData.pipeSize;
@@ -524,7 +499,6 @@
                 monitorSelector.value = fdvKey;
             }
 
-            if (monitorSelector.value !== fdvKey) monitorSelector.value = fdvKey;
             hydraulicChartsWrapper.style.display = 'block';
             renderPane('depthChart', fdvData.labels, fdvData.depth, 'Depth (mm)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'depth');
             renderPane('flowChart', fdvData.labels, fdvData.flow, 'Flow (lit/sec)', '#10b981', 'rgba(16, 185, 129, 0.03)', 'flow');
@@ -569,8 +543,6 @@
 
             const datasets = [];
             rainKeys.forEach((gaugeKey, index) => {
-            let targetLabels = (activeFdvKey && fdvDatabase[activeFdvKey]) ? fdvDatabase[activeFdvKey].labels : rainDatabase[rainKeys[0]].labels;
-            const datasets = rainKeys.map((gaugeKey, index) => {
                 const rainData = rainDatabase[gaugeKey];
                 let runningSum = 0;
                 const cumulativeValues = [];
@@ -594,12 +566,7 @@
                     pointRadius: 0,
                     tension: 0.1,
                     fill: false
-                const cumulativeValues = targetLabels.map((_, i) => {
-                    const rawVal = rainData.depths[i] || 0;
-                    runningSum += rawVal;
-                    return runningSum;
                 });
-                return { label: `${gaugeKey} (${runningSum.toFixed(2)} mm)`, data: cumulativeValues, borderColor: lineColorsPalette[index % lineColorsPalette.length], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: false };
             });
 
             const ctx = document.getElementById('cumulativeChart').getContext('2d');
@@ -653,7 +620,6 @@
                     }
                 }
             });
-            charts.cumulative = new Chart(ctx, { type: 'line', data: { labels: targetLabels, datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: true, drawOnChartArea: false }, ticks: { maxTicksLimit: 4, color: '#64748b', font: { size: 9 } } }, y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 10 } } } }, plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } } } });
         }
 
         function renderScatterCorrelationChart() {
@@ -712,7 +678,6 @@
                     }
                 }
             });
-            charts.scatter = new Chart(ctx, { type: 'scatter', data: { datasets: [{ label: activeFdvKey, data: fdvData.velocity.map((v, i) => ({ x: v, y: fdvData.depth[i] })), backgroundColor: 'rgba(239, 68, 68, 0.5)', borderColor: '#ef4444', pointRadius: 2.5 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Velocity (m/s)', font: { weight: 'bold', size: 10 } } }, y: { title: { display: true, text: 'Depth (mm)', font: { weight: 'bold', size: 10 } } } }, plugins: { legend: { display: false } } } });
         }
 
         function calculateAndPopulateStats() {
@@ -722,7 +687,6 @@
             let calculatedVolumeM3 = 0;
 
             document.getElementById('tblTimeRange').textContent = "0000-00-00 00:00:00 - 0000-00-00 00:00:00";
-            document.getElementById('tblTimeRange').textContent = "-";
             document.getElementById('tblTotalRain').textContent = "0.000";
             document.getElementById('tblTotalVolume').textContent = "0.000";
             
@@ -756,7 +720,6 @@
                 let integratedLiters = fdv.flow.reduce((acc, curr) => acc + (isNaN(curr) ? 0 : curr), 0) * timeStepSeconds;
                 calculatedVolumeM3 = integratedLiters / 1000;
                 document.getElementById('tblTotalVolume').textContent = calculatedVolumeM3.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3});
-                document.getElementById('tblTotalVolume').textContent = (fdv.flow.reduce((a, b) => a + (isNaN(b) ? 0 : b), 0) * (fdv.intervalMinutes || 2) * 0.06).toFixed(3);
             }
 
             const selectedRainKey = rainSelector.value;
@@ -781,9 +744,7 @@
 
             if (hasData && activeLabels.length > 0) {
                 document.getElementById('tblTimeRange').textContent = `${activeLabels[0]} - ${activeLabels[activeLabels.length - 1]}`;
-                document.getElementById('tblTotalRain').textContent = rain.totalDepth.toFixed(3);
             }
-            if (activeLabels.length > 0) document.getElementById('tblTimeRange').textContent = `${activeLabels[0]} - ${activeLabels[activeLabels.length - 1]}`;
         }
 
         function computeArrayMetrics(arr) {
@@ -801,9 +762,6 @@
             return {
                 min: min === Infinity ? 0 : min, max: max === -Infinity ? 0 : max, avg: count === 0 ? 0 : (sum / count)
             };
-            const clean = arr.filter(v => !isNaN(v));
-            if (clean.length === 0) return { min: 0, max: 0, avg: 0 };
-            return { min: Math.min(...clean), max: Math.max(...clean), avg: clean.reduce((a, b) => a + b, 0) / clean.length };
         }
 
         function renderPane(canvasId, labels, data, labelTitle, primaryColor, fillBG, key, invertY = false) {
@@ -842,7 +800,6 @@
                     plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
                 }
             });
-            charts[key] = new Chart(ctx, { type: invertY ? 'bar' : 'line', data: { labels: labels, datasets: [{ data: data, borderColor: primaryColor, backgroundColor: fillBG, borderWidth: invertY ? 0 : 1.5, pointRadius: 0, fill: true, tension: 0.02 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: true, drawOnChartArea: false }, ticks: { maxTicksLimit: 10, color: '#64748b', font: { size: 10 } } }, y: { grid: { color: '#f1f5f9' }, ticks: { color: '#334155', font: { size: 11 } }, title: { display: true, text: labelTitle, font: { weight: 'bold', size: 11 } }, reverse: invertY } }, plugins: { legend: { display: false } } } });
         }
     </script>
 </body>
