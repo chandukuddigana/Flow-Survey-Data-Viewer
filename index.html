@@ -2,8 +2,9 @@
 <html lang="en">
 
 <head>
+
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
 <title>Flow Survey Dashboard V2</title>
 
@@ -32,7 +33,7 @@ body{
     border:3px dashed #999;
     border-radius:10px;
     background:white;
-    padding:50px;
+    padding:60px;
     text-align:center;
     font-size:20px;
     transition:0.3s;
@@ -111,13 +112,13 @@ input{
     gap:20px;
 }
 
-.small-chart canvas{
-    height:260px !important;
-}
-
 canvas{
     width:100% !important;
     height:340px !important;
+}
+
+.small-chart canvas{
+    height:260px !important;
 }
 
 .stats-table{
@@ -256,7 +257,6 @@ canvas{
 
 // =====================================================
 // GLOBAL DRAG DROP PROTECTION
-// Prevent browser from opening files
 // =====================================================
 
 window.addEventListener('dragover', function(e){
@@ -282,7 +282,6 @@ let cumulativeChart;
 
 // =====================================================
 // DATE PARSER
-// YYMMDDHHMM → Date
 // =====================================================
 
 function parseYYMMDDHHMM(str){
@@ -334,22 +333,28 @@ function parseFDV(text){
 
     const lines = text.split(/\r?\n/);
 
-    const identifierLine = lines.find(l =>
-        l.toUpperCase().includes('FM') ||
-        l.toUpperCase().includes('DM') ||
-        l.toUpperCase().includes('RM')
-    );
+    const identifierMatch = text.match(/\b(FM|DM|RM)\d+\b/i);
 
-    const identifier = identifierLine.match(/(FM|DM|RM)\d+/i)[0].toUpperCase();
+    if(!identifierMatch){
+
+        throw new Error('Unable to detect monitor identifier');
+    }
+
+    const identifier = identifierMatch[0].toUpperCase();
 
     const dateLine = lines.find(l => /^\d{10}/.test(l.trim()));
 
-    const dateParts = dateLine.trim().split(/\s+/);
+    if(!dateLine){
 
-    const start = parseYYMMDDHHMM(dateParts[0]);
-    const end = parseYYMMDDHHMM(dateParts[1]);
+        throw new Error('Unable to detect FDV date line');
+    }
 
-    const interval = parseInt(dateParts[2]);
+    const parts = dateLine.trim().split(/\s+/);
+
+    const start = parseYYMMDDHHMM(parts[0]);
+    const end = parseYYMMDDHHMM(parts[1]);
+
+    const interval = parseInt(parts[2]);
 
     let pipeSize = '';
 
@@ -359,13 +364,13 @@ function parseFDV(text){
 
     if(cstartIndex >= 0){
 
-        for(let i=cstartIndex;i<cstartIndex+8;i++){
+        for(let i=cstartIndex;i<cstartIndex+10;i++){
 
-            const vals = lines[i]?.match(/\d+/g);
+            const nums = lines[i]?.match(/\d+/g);
 
-            if(vals){
+            if(nums){
 
-                vals.forEach(v=>{
+                nums.forEach(v=>{
 
                     const n = parseInt(v);
 
@@ -381,6 +386,11 @@ function parseFDV(text){
     const cendIndex = lines.findIndex(l =>
         l.toUpperCase().includes('CEND')
     );
+
+    if(cendIndex < 0){
+
+        throw new Error('Unable to detect FDV data section');
+    }
 
     const nums = lines
         .slice(cendIndex + 1)
@@ -434,24 +444,37 @@ function parseRain(text){
 
     const lines = text.split(/\r?\n/);
 
-    const identifierLine = lines.find(l =>
-        l.toUpperCase().includes('RG')
-    );
+    const identifierMatch = text.match(/\bRG\d+\b/i);
 
-    const identifier = identifierLine.match(/RG\d+/i)[0].toUpperCase();
+    if(!identifierMatch){
+
+        throw new Error('Unable to detect RG identifier');
+    }
+
+    const identifier = identifierMatch[0].toUpperCase();
 
     const dateLine = lines.find(l => /^\d{10}/.test(l.trim()));
 
-    const dateParts = dateLine.trim().split(/\s+/);
+    if(!dateLine){
 
-    const start = parseYYMMDDHHMM(dateParts[0]);
-    const end = parseYYMMDDHHMM(dateParts[1]);
+        throw new Error('Unable to detect RG date line');
+    }
 
-    const interval = parseInt(dateParts[2]);
+    const parts = dateLine.trim().split(/\s+/);
+
+    const start = parseYYMMDDHHMM(parts[0]);
+    const end = parseYYMMDDHHMM(parts[1]);
+
+    const interval = parseInt(parts[2]);
 
     const cendIndex = lines.findIndex(l =>
         l.toUpperCase().includes('CEND')
     );
+
+    if(cendIndex < 0){
+
+        throw new Error('Unable to detect RG data section');
+    }
 
     const intensity = lines
         .slice(cendIndex + 1)
@@ -650,6 +673,7 @@ function renderDashboard(){
 
             data:{
                 datasets:[{
+
                     label:'Depth vs Velocity',
 
                     data:monitor.depth.map((d,i)=>({
@@ -784,107 +808,155 @@ function renderDashboard(){
 
 async function handleFiles(files){
 
-    monitors.length = 0;
-    rainGauges.length = 0;
+    try{
 
-    for(const file of files){
+        dropZone.innerHTML =
+            `<h2>Processing Files...</h2>
+             <p>Please wait while telemetry is parsed.</p>`;
 
-        const text = await file.text();
+        monitors.length = 0;
+        rainGauges.length = 0;
 
-        if(file.name.toLowerCase().endsWith('.fdv')){
+        let processed = 0;
 
-            monitors.push(
-                parseFDV(text)
+        for(const file of files){
+
+            const text = await file.text();
+
+            if(file.name.toLowerCase().endsWith('.fdv')){
+
+                monitors.push(
+                    parseFDV(text)
+                );
+            }
+
+            if(file.name.toLowerCase().endsWith('.r')){
+
+                rainGauges.push(
+                    parseRain(text)
+                );
+            }
+
+            processed++;
+
+            dropZone.innerHTML =
+                `<h2>Processing Files...</h2>
+                 <p>${processed} / ${files.length} files processed</p>`;
+        }
+
+        monitors.sort((a,b)=>
+            a.identifier.localeCompare(b.identifier)
+        );
+
+        rainGauges.sort((a,b)=>
+            a.identifier.localeCompare(b.identifier)
+        );
+
+        if(monitors.length === 0){
+
+            throw new Error(
+                'No FDV monitor files detected'
             );
         }
 
-        if(file.name.toLowerCase().endsWith('.r')){
+        if(rainGauges.length === 0){
 
-            rainGauges.push(
-                parseRain(text)
+            throw new Error(
+                'No Rain Gauge files detected'
             );
         }
+
+        const monitorSelect =
+            document.getElementById('monitorSelect');
+
+        const rainSelect =
+            document.getElementById('rainSelect');
+
+        monitorSelect.innerHTML = '';
+        rainSelect.innerHTML = '';
+
+        monitors.forEach((m,i)=>{
+
+            const op = document.createElement('option');
+
+            op.value = i;
+            op.textContent = m.identifier;
+
+            monitorSelect.appendChild(op);
+        });
+
+        rainGauges.forEach(r=>{
+
+            const op = document.createElement('option');
+
+            op.value = r.identifier;
+            op.textContent = r.identifier;
+
+            rainSelect.appendChild(op);
+        });
+
+        dropZone.innerHTML =
+            `<h2>Files Loaded Successfully</h2>
+             <p>${monitors.length} monitors loaded</p>
+             <p>${rainGauges.length} rain gauges loaded</p>`;
+
+        setTimeout(()=>{
+
+            document.getElementById('dropZone').style.display='none';
+
+            document.getElementById('app').style.display='block';
+
+        },1000);
+
+        monitorSelect.onchange = ()=>{
+
+            currentMonitorIndex =
+                parseInt(monitorSelect.value);
+
+            renderDashboard();
+        };
+
+        rainSelect.onchange = ()=>{
+
+            renderDashboard();
+        };
+
+        document.getElementById('prevBtn').onclick = ()=>{
+
+            currentMonitorIndex =
+                (currentMonitorIndex - 1 + monitors.length)
+                % monitors.length;
+
+            monitorSelect.value =
+                currentMonitorIndex;
+
+            renderDashboard();
+        };
+
+        document.getElementById('nextBtn').onclick = ()=>{
+
+            currentMonitorIndex =
+                (currentMonitorIndex + 1)
+                % monitors.length;
+
+            monitorSelect.value =
+                currentMonitorIndex;
+
+            renderDashboard();
+        };
+
+        renderDashboard();
+
     }
 
-    monitors.sort((a,b)=>
-        a.identifier.localeCompare(b.identifier)
-    );
+    catch(err){
 
-    rainGauges.sort((a,b)=>
-        a.identifier.localeCompare(b.identifier)
-    );
+        console.error(err);
 
-    const monitorSelect =
-        document.getElementById('monitorSelect');
-
-    const rainSelect =
-        document.getElementById('rainSelect');
-
-    monitorSelect.innerHTML='';
-    rainSelect.innerHTML='';
-
-    monitors.forEach((m,i)=>{
-
-        const op = document.createElement('option');
-
-        op.value = i;
-        op.textContent = m.identifier;
-
-        monitorSelect.appendChild(op);
-    });
-
-    rainGauges.forEach(r=>{
-
-        const op = document.createElement('option');
-
-        op.value = r.identifier;
-        op.textContent = r.identifier;
-
-        rainSelect.appendChild(op);
-    });
-
-    document.getElementById('dropZone').style.display='none';
-
-    document.getElementById('app').style.display='block';
-
-    monitorSelect.onchange = ()=>{
-
-        currentMonitorIndex =
-            parseInt(monitorSelect.value);
-
-        renderDashboard();
-    };
-
-    rainSelect.onchange = ()=>{
-
-        renderDashboard();
-    };
-
-    document.getElementById('prevBtn').onclick = ()=>{
-
-        currentMonitorIndex =
-            (currentMonitorIndex - 1 + monitors.length)
-            % monitors.length;
-
-        monitorSelect.value =
-            currentMonitorIndex;
-
-        renderDashboard();
-    };
-
-    document.getElementById('nextBtn').onclick = ()=>{
-
-        currentMonitorIndex =
-            (currentMonitorIndex + 1)
-            % monitors.length;
-
-        monitorSelect.value =
-            currentMonitorIndex;
-
-        renderDashboard();
-    };
-
-    renderDashboard();
+        dropZone.innerHTML =
+            `<h2>ERROR</h2>
+             <p>${err.message}</p>`;
+    }
 }
 
 // =====================================================
