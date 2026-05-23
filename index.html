@@ -673,21 +673,37 @@ function handleFiles(files){
 }
 
 // =====================================================
+// GLOBAL BROWSER DRAG-DROP PROTECTION
+// Prevent browser from opening dropped files
+// =====================================================
+
+window.addEventListener('dragover', function(e){
+    e.preventDefault();
+});
+
+window.addEventListener('drop', function(e){
+    e.preventDefault();
+});
+
+// =====================================================
 // DRAG AND DROP EVENT HANDLERS
 // =====================================================
+
 const dropZone=document.getElementById('dropZone');
 
 ['dragenter','dragover'].forEach(e=>{
     dropZone.addEventListener(e,ev=>{
         ev.preventDefault();
+        ev.stopPropagation();
     });
 });
 
-['drop'].forEach(e=>{
-    dropZone.addEventListener(e,ev=>{
-        ev.preventDefault();
-        handleFiles(ev.dataTransfer.files);
-    });
+dropZone.addEventListener('drop',ev=>{
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    handleFiles(ev.dataTransfer.files);
+});
 });
 </script>
 
