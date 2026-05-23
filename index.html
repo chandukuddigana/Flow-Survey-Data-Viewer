@@ -3,8 +3,8 @@
 
 <head>
 
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Flow Survey Dashboard V2</title>
 
@@ -15,7 +15,7 @@
 
 body{
     margin:0;
-    font-family:Arial, sans-serif;
+    font-family:Arial,sans-serif;
     background:#f2f2f2;
     color:#222;
 }
@@ -169,7 +169,7 @@ canvas{
 
         <div class="control-box">
             <label>Size of the Monitored Pipe</label>
-            <input id="pipeSize" readonly />
+            <input id="pipeSize" readonly>
         </div>
 
         <div class="control-box">
@@ -333,66 +333,85 @@ function parseFDV(text){
 
     const lines = text.split(/\r?\n/);
 
-    const identifierMatch = text.match(/\b(FM|DM|RM)\d+\b/i);
+    const identifierMatch =
+        text.match(/\b(FM|DM|RM)\d+\b/i);
 
     if(!identifierMatch){
 
-        throw new Error('Unable to detect monitor identifier');
+        throw new Error(
+            'Unable to detect monitor identifier'
+        );
     }
 
-    const identifier = identifierMatch[0].toUpperCase();
+    const identifier =
+        identifierMatch[0].toUpperCase();
 
-    const dateLine = lines.find(l => /^\d{10}/.test(l.trim()));
+    const dateLine =
+        lines.find(l => /^\d{10}/.test(l.trim()));
 
     if(!dateLine){
 
-        throw new Error('Unable to detect FDV date line');
+        throw new Error(
+            'Unable to detect FDV date line'
+        );
     }
 
-    const parts = dateLine.trim().split(/\s+/);
+    const parts =
+        dateLine.trim().split(/\s+/);
 
-    const start = parseYYMMDDHHMM(parts[0]);
-    const end = parseYYMMDDHHMM(parts[1]);
+    const start =
+        parseYYMMDDHHMM(parts[0]);
 
-    const interval = parseInt(parts[2]);
+    const end =
+        parseYYMMDDHHMM(parts[1]);
+
+    const interval =
+        parseInt(parts[2]);
+
+    // =================================================
+    // PIPE SIZE EXTRACTION
+    // Pipe size located immediately after CSTART
+    // =================================================
 
     let pipeSize = '';
 
-    const cstartIndex = lines.findIndex(l =>
-        l.toUpperCase().includes('CSTART')
-    );
+    const cstartIndex =
+        lines.findIndex(l =>
+            l.toUpperCase().includes('CSTART')
+        );
 
     if(cstartIndex >= 0){
 
-        for(let i=cstartIndex;i<cstartIndex+10;i++){
+        const constantLine =
+            lines[cstartIndex + 1];
 
-            const nums = lines[i]?.match(/\d+/g);
+        if(constantLine){
 
-            if(nums){
+            const nums =
+                constantLine.match(/-?\d+\.?\d*/g);
 
-                nums.forEach(v=>{
+            if(nums && nums.length > 0){
 
-                    const n = parseInt(v);
-
-                    if(n > 50 && n < 5000){
-
-                        pipeSize = n;
-                    }
-                });
+                pipeSize =
+                    parseFloat(nums[0]);
             }
         }
     }
 
-    const cendIndex = lines.findIndex(l =>
-        l.toUpperCase().includes('CEND')
-    );
+    const cendIndex =
+        lines.findIndex(l =>
+            l.toUpperCase().includes('CEND')
+        );
 
     if(cendIndex < 0){
 
-        throw new Error('Unable to detect FDV data section');
+        throw new Error(
+            'Unable to detect FDV data section'
+        );
     }
 
-    const nums = lines
+    const nums =
+        lines
         .slice(cendIndex + 1)
         .join(' ')
         .trim()
@@ -411,11 +430,12 @@ function parseFDV(text){
         velocity.push(nums[i+2] || 0);
     }
 
-    const timestamps = generateTimeline(
-        start,
-        interval,
-        depth.length
-    );
+    const timestamps =
+        generateTimeline(
+            start,
+            interval,
+            depth.length
+        );
 
     let type = 'FM';
 
@@ -444,39 +464,55 @@ function parseRain(text){
 
     const lines = text.split(/\r?\n/);
 
-    const identifierMatch = text.match(/\bRG\d+\b/i);
+    const identifierMatch =
+        text.match(/\bRG\d+\b/i);
 
     if(!identifierMatch){
 
-        throw new Error('Unable to detect RG identifier');
+        throw new Error(
+            'Unable to detect RG identifier'
+        );
     }
 
-    const identifier = identifierMatch[0].toUpperCase();
+    const identifier =
+        identifierMatch[0].toUpperCase();
 
-    const dateLine = lines.find(l => /^\d{10}/.test(l.trim()));
+    const dateLine =
+        lines.find(l => /^\d{10}/.test(l.trim()));
 
     if(!dateLine){
 
-        throw new Error('Unable to detect RG date line');
+        throw new Error(
+            'Unable to detect RG date line'
+        );
     }
 
-    const parts = dateLine.trim().split(/\s+/);
+    const parts =
+        dateLine.trim().split(/\s+/);
 
-    const start = parseYYMMDDHHMM(parts[0]);
-    const end = parseYYMMDDHHMM(parts[1]);
+    const start =
+        parseYYMMDDHHMM(parts[0]);
 
-    const interval = parseInt(parts[2]);
+    const end =
+        parseYYMMDDHHMM(parts[1]);
 
-    const cendIndex = lines.findIndex(l =>
-        l.toUpperCase().includes('CEND')
-    );
+    const interval =
+        parseInt(parts[2]);
+
+    const cendIndex =
+        lines.findIndex(l =>
+            l.toUpperCase().includes('CEND')
+        );
 
     if(cendIndex < 0){
 
-        throw new Error('Unable to detect RG data section');
+        throw new Error(
+            'Unable to detect RG data section'
+        );
     }
 
-    const intensity = lines
+    const intensity =
+        lines
         .slice(cendIndex + 1)
         .join(' ')
         .trim()
@@ -484,11 +520,12 @@ function parseRain(text){
         .map(Number)
         .filter(v => !isNaN(v));
 
-    const timestamps = generateTimeline(
-        start,
-        interval,
-        intensity.length
-    );
+    const timestamps =
+        generateTimeline(
+            start,
+            interval,
+            intensity.length
+        );
 
     return {
         identifier,
@@ -554,15 +591,20 @@ function cumulativeRain(intensity, interval){
 
 function renderDashboard(){
 
-    const monitor = monitors[currentMonitorIndex];
+    const monitor =
+        monitors[currentMonitorIndex];
 
-    const rain = rainGauges.find(r =>
-        r.identifier === document.getElementById('rainSelect').value
-    );
+    const rain =
+        rainGauges.find(r =>
+            r.identifier ===
+            document.getElementById('rainSelect').value
+        );
 
-    const rainAligned = synchronizeRain(monitor, rain);
+    const rainAligned =
+        synchronizeRain(monitor, rain);
 
-    const labels = monitor.timestamps;
+    const labels =
+        monitor.timestamps;
 
     document.getElementById('monitorTitle').innerText =
         monitor.identifier;
@@ -616,7 +658,6 @@ function renderDashboard(){
                         borderDash:[2,2],
                         yAxisID:'y'
                     }
-
                 ]
             },
 
@@ -657,7 +698,8 @@ function renderDashboard(){
         }
     );
 
-    const scatterDisabled = monitor.type !== 'FM';
+    const scatterDisabled =
+        monitor.type !== 'FM';
 
     document.getElementById('scatterChart')
         .parentElement
@@ -678,7 +720,7 @@ function renderDashboard(){
 
                     data:monitor.depth.map((d,i)=>({
                         x:monitor.velocity[i],
-                        y:d/1000
+                        y:d / 1000
                     })),
 
                     pointBackgroundColor:'red'
@@ -727,13 +769,17 @@ function renderDashboard(){
 
                 labels,
 
-                datasets:rainGauges.map((rg,i)=>{
+                datasets:
+                    rainGauges.map((rg,i)=>{
 
                     const aligned =
                         synchronizeRain(monitor, rg);
 
                     const cum =
-                        cumulativeRain(aligned, monitor.interval);
+                        cumulativeRain(
+                            aligned,
+                            monitor.interval
+                        );
 
                     return {
 
@@ -742,7 +788,8 @@ function renderDashboard(){
 
                         data:cum,
 
-                        borderColor:colors[i % colors.length],
+                        borderColor:
+                            colors[i % colors.length],
 
                         tension:0.2
                     };
@@ -772,12 +819,15 @@ function renderDashboard(){
     );
 
     const totalRain =
-        cumulativeRain(rainAligned, monitor.interval)
-        .slice(-1)[0] || 0;
+        cumulativeRain(
+            rainAligned,
+            monitor.interval
+        ).slice(-1)[0] || 0;
 
     const totalVolume =
         monitor.flow.reduce((a,b)=>
-            a + b * (monitor.interval * 60),0
+            a + b * (monitor.interval * 60),
+            0
         ) / 1000;
 
     document.getElementById('timeRange').innerText =
@@ -821,7 +871,8 @@ async function handleFiles(files){
 
         for(const file of files){
 
-            const text = await file.text();
+            const text =
+                await file.text();
 
             if(file.name.toLowerCase().endsWith('.fdv')){
 
@@ -877,7 +928,8 @@ async function handleFiles(files){
 
         monitors.forEach((m,i)=>{
 
-            const op = document.createElement('option');
+            const op =
+                document.createElement('option');
 
             op.value = i;
             op.textContent = m.identifier;
@@ -887,7 +939,8 @@ async function handleFiles(files){
 
         rainGauges.forEach(r=>{
 
-            const op = document.createElement('option');
+            const op =
+                document.createElement('option');
 
             op.value = r.identifier;
             op.textContent = r.identifier;
@@ -963,7 +1016,8 @@ async function handleFiles(files){
 // DRAG DROP EVENTS
 // =====================================================
 
-const dropZone = document.getElementById('dropZone');
+const dropZone =
+    document.getElementById('dropZone');
 
 dropZone.addEventListener('dragover', e=>{
 
@@ -983,7 +1037,8 @@ dropZone.addEventListener('drop', e=>{
 
     dropZone.classList.remove('dragover');
 
-    const files = e.dataTransfer.files;
+    const files =
+        e.dataTransfer.files;
 
     handleFiles(files);
 });
