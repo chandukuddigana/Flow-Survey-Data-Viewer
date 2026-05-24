@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V19</title>
+<title>Flow Survey Dashboard V20</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -150,6 +150,7 @@ input{
 
 canvas{
     width:100% !important;
+    background:white !important;
 }
 
 .main-chart{
@@ -197,7 +198,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V19
+    Flow Survey Dashboard V20
 </div>
 
 <div id="dropZone">
@@ -346,63 +347,6 @@ canvas{
 
         </table>
 
-        <table class="stats-table">
-
-            <thead>
-
-                <tr>
-
-                    <th colspan="3">Rainfall</th>
-                    <th colspan="2">Depth</th>
-                    <th colspan="3">Flow</th>
-                    <th colspan="2">Velocity</th>
-
-                </tr>
-
-                <tr>
-
-                    <th>Depth (mm)</th>
-                    <th>Peak (mm/hr)</th>
-                    <th>Average (mm/hr)</th>
-
-                    <th>Min (mm)</th>
-                    <th>Max (mm)</th>
-
-                    <th>Min (l/s)</th>
-                    <th>Max (l/s)</th>
-                    <th>Volume (m³)</th>
-
-                    <th>Min (m/s)</th>
-                    <th>Max (m/s)</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                <tr>
-
-                    <td id="rainDepth"></td>
-                    <td id="rainPeak"></td>
-                    <td id="rainAverage"></td>
-
-                    <td id="depthMin"></td>
-                    <td id="depthMax"></td>
-
-                    <td id="flowMin"></td>
-                    <td id="flowMax"></td>
-                    <td id="flowVolume"></td>
-
-                    <td id="velocityMin"></td>
-                    <td id="velocityMax"></td>
-
-                </tr>
-
-            </tbody>
-
-        </table>
-
     </div>
 
 </div>
@@ -470,64 +414,272 @@ function generateTimeline(start, interval, count){
     return arr;
 }
 
-function commonXAxis(labels){
+function parseFDV(text){
+
+    const lines =
+        text.split(/\r?\n/);
+
+    const identifier =
+        text.match(/\b(FM|DM|RM)\d+\b/i)[0]
+        .toUpperCase();
+
+    const dateLine =
+        lines.find(l =>
+            /^\d{10}/.test(l.trim())
+        );
+
+    const parts =
+        dateLine.trim().split(/\s+/);
+
+    const start =
+        parseYYMMDDHHMM(parts[0]);
+
+    const interval =
+        parseInt(parts[2]);
+
+    const cendIndex =
+        lines.findIndex(l =>
+            l.toUpperCase().includes('CEND')
+        );
+
+    const nums =
+        lines
+        .slice(cendIndex + 1)
+        .join(' ')
+        .trim()
+        .split(/\s+/)
+        .map(Number);
+
+    const flow = [];
+    const depth = [];
+    const velocity = [];
+
+    for(let i=0;i<nums.length;i+=3){
+
+        flow.push(nums[i] || 0);
+        depth.push(nums[i+1] || 0);
+        velocity.push(nums[i+2] || 0);
+    }
 
     return {
 
-        ticks:{
+        identifier,
 
-            maxTicksLimit:10,
+        timestamps:
+            generateTimeline(
+                start,
+                interval,
+                depth.length
+            ),
 
-            callback:(value)=>
-                formatDate(labels[value]),
+        flow,
+        depth,
+        velocity,
 
-            maxRotation:0,
-            minRotation:0
-        }
+        interval,
+
+        type:
+            identifier.substring(0,2)
     };
 }
 
-function cumulativeXAxis(labels){
+function parseRain(text){
+
+    const lines =
+        text.split(/\r?\n/);
+
+    const identifier =
+        text.match(/\bRG\d+\b/i)[0]
+        .toUpperCase();
+
+    const dateLine =
+        lines.find(l =>
+            /^\d{10}/.test(l.trim())
+        );
+
+    const parts =
+        dateLine.trim().split(/\s+/);
+
+    const start =
+        parseYYMMDDHHMM(parts[0]);
+
+    const interval =
+        parseInt(parts[2]);
+
+    const cendIndex =
+        lines.findIndex(l =>
+            l.toUpperCase().includes('CEND')
+        );
+
+    const intensity =
+        lines
+        .slice(cendIndex + 1)
+        .join(' ')
+        .trim()
+        .split(/\s+/)
+        .map(Number);
 
     return {
 
-        ticks:{
+        identifier,
 
-            autoSkip:false,
+        timestamps:
+            generateTimeline(
+                start,
+                interval,
+                intensity.length
+            ),
 
-            callback:function(value,index){
-
-                const total =
-                    labels.length;
-
-                if(index === 0){
-
-                    return formatDate(labels[index]);
-                }
-
-                if(index === total - 1){
-
-                    return formatDate(labels[index]);
-                }
-
-                const interval =
-                    Math.floor(total / 4);
-
-                if(interval > 0 && index % interval === 0){
-
-                    return formatDate(labels[index]);
-                }
-
-                return '';
-            },
-
-            maxRotation:0,
-            minRotation:0
-        }
+        intensity
     };
 }
 
-// Remaining JS from V18 remains EXACTLY SAME
+function initializeCharts(){
+
+    rainChart =
+        new Chart(
+            document.getElementById('rainChart'),
+            {
+                type:'line',
+                data:{
+                    labels:[],
+                    datasets:[{
+                        data:[],
+                        borderColor:'#002b7f',
+                        borderWidth:1.2,
+                        pointRadius:0
+                    }]
+                },
+                options:{
+                    responsive:true,
+                    maintainAspectRatio:false
+                }
+            }
+        );
+}
+
+function renderDashboard(){
+
+    const monitor =
+        monitors[currentMonitorIndex];
+
+    const labels =
+        monitor.timestamps;
+
+    rainChart.data.labels = labels;
+
+    rainChart.data.datasets[0].data =
+        monitor.depth;
+
+    rainChart.update();
+
+    document.getElementById('monitorTitle').innerText =
+        monitor.identifier;
+
+    document.getElementById('timeRange').innerText =
+        `${formatDateTime(labels[0])} - ${formatDateTime(labels[labels.length-1])}`;
+}
+
+async function handleFiles(files){
+
+    monitors.length = 0;
+    rainGauges.length = 0;
+
+    const loadingText =
+        document.getElementById('loadingText');
+
+    let processed = 0;
+
+    for(const file of files){
+
+        const text =
+            await file.text();
+
+        if(file.name.toLowerCase().endsWith('.fdv')){
+
+            monitors.push(
+                parseFDV(text)
+            );
+        }
+
+        if(file.name.toLowerCase().endsWith('.r')){
+
+            rainGauges.push(
+                parseRain(text)
+            );
+        }
+
+        processed++;
+
+        loadingText.innerHTML =
+            `Processing ${processed} / ${files.length}`;
+    }
+
+    if(monitors.length === 0){
+
+        alert('No FDV files detected');
+
+        return;
+    }
+
+    initializeCharts();
+
+    document.getElementById('dropZone').style.display='none';
+
+    document.getElementById('app').style.display='block';
+
+    renderDashboard();
+}
+
+// DRAG DROP FIX
+
+const dropZone =
+    document.getElementById('dropZone');
+
+['dragenter','dragover'].forEach(eventName=>{
+
+    dropZone.addEventListener(
+        eventName,
+        e=>{
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            dropZone.classList.add('dragover');
+        },
+        false
+    );
+});
+
+['dragleave','drop'].forEach(eventName=>{
+
+    dropZone.addEventListener(
+        eventName,
+        e=>{
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            dropZone.classList.remove('dragover');
+        },
+        false
+    );
+});
+
+dropZone.addEventListener(
+    'drop',
+    e=>{
+
+        const dt =
+            e.dataTransfer;
+
+        const files =
+            dt.files;
+
+        handleFiles(files);
+    },
+    false
+);
 
 </script>
 
