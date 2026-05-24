@@ -327,8 +327,6 @@ canvas{
 
     <div class="stats-box">
 
-        <!-- TABLE 1 -->
-
         <table class="stats-table">
 
             <thead>
@@ -356,8 +354,6 @@ canvas{
         </table>
 
         <br>
-
-        <!-- TABLE 2 -->
 
         <table class="stats-table">
 
@@ -422,10 +418,6 @@ canvas{
 
 <script>
 
-// =====================================================
-// GLOBALS
-// =====================================================
-
 const monitors = [];
 const rainGauges = [];
 
@@ -440,10 +432,6 @@ let scatterChart;
 
 Chart.defaults.animation = false;
 
-// =====================================================
-// DATE PARSER
-// =====================================================
-
 function parseYYMMDDHHMM(str){
 
     const yy = parseInt(str.slice(0,2));
@@ -455,10 +443,6 @@ function parseYYMMDDHHMM(str){
     return new Date(2000 + yy, mm, dd, hh, mi);
 }
 
-// =====================================================
-// DATE FORMAT
-// =====================================================
-
 function formatDate(date){
 
     return date.toLocaleDateString('en-GB',{
@@ -466,10 +450,6 @@ function formatDate(date){
         month:'short'
     });
 }
-
-// =====================================================
-// TIMELINE
-// =====================================================
 
 function generateTimeline(start, interval, count){
 
@@ -484,10 +464,6 @@ function generateTimeline(start, interval, count){
 
     return arr;
 }
-
-// =====================================================
-// FDV PARSER
-// =====================================================
 
 function parseFDV(text){
 
@@ -565,14 +541,8 @@ function parseFDV(text){
             depth.length
         );
 
-    let type='FM';
-
-    if(identifier.startsWith('DM')) type='DM';
-    if(identifier.startsWith('RM')) type='RM';
-
     return {
         identifier,
-        type,
         start,
         end,
         interval,
@@ -583,10 +553,6 @@ function parseFDV(text){
         velocity
     };
 }
-
-// =====================================================
-// RG PARSER
-// =====================================================
 
 function parseRain(text){
 
@@ -636,17 +602,10 @@ function parseRain(text){
 
     return {
         identifier,
-        start,
-        end,
-        interval,
         timestamps,
         intensity
     };
 }
-
-// =====================================================
-// PRECOMPUTE RAIN
-// =====================================================
 
 function precomputeRainAlignment(){
 
@@ -690,8 +649,6 @@ function precomputeRainAlignment(){
 
                 stats:{
 
-                    minRain:Math.min(...aligned),
-
                     avgRain:
                         aligned.reduce((a,b)=>a+b,0)
                         / aligned.length,
@@ -704,10 +661,6 @@ function precomputeRainAlignment(){
         });
     });
 }
-
-// =====================================================
-// COMMON X AXIS
-// =====================================================
 
 function commonXAxis(labels){
 
@@ -722,10 +675,6 @@ function commonXAxis(labels){
         }
     };
 }
-
-// =====================================================
-// CHART CREATOR
-// =====================================================
 
 function createChart(canvasId, color, yTitle, reverse=false){
 
@@ -771,10 +720,6 @@ function createChart(canvasId, color, yTitle, reverse=false){
         }
     );
 }
-
-// =====================================================
-// INITIALIZE CHARTS
-// =====================================================
 
 function initializeCharts(){
 
@@ -878,14 +823,16 @@ function initializeCharts(){
                             title:{
                                 display:true,
                                 text:'Velocity (m/s)'
-                            }
+                            },
+                            min:0
                         },
 
                         y:{
                             title:{
                                 display:true,
                                 text:'Depth (m)'
-                            }
+                            },
+                            min:0
                         }
                     }
                 }
@@ -893,45 +840,17 @@ function initializeCharts(){
         );
 }
 
-// =====================================================
-// UPDATE LINE CHART
-// =====================================================
-
 function updateLineChart(chart, labels, data){
 
-    const maxPoints = 1500;
+    chart.data.labels = labels;
 
-    let dsLabels = labels;
-    let dsData = data;
-
-    if(labels.length > maxPoints){
-
-        const factor =
-            Math.ceil(labels.length / maxPoints);
-
-        dsLabels = [];
-        dsData = [];
-
-        for(let i=0;i<labels.length;i+=factor){
-
-            dsLabels.push(labels[i]);
-            dsData.push(data[i]);
-        }
-    }
-
-    chart.data.labels = dsLabels;
-
-    chart.data.datasets[0].data = dsData;
+    chart.data.datasets[0].data = data;
 
     chart.options.scales.x =
-        commonXAxis(dsLabels);
+        commonXAxis(labels);
 
     chart.update('none');
 }
-
-// =====================================================
-// RENDER DASHBOARD
-// =====================================================
 
 function renderDashboard(){
 
@@ -952,8 +871,6 @@ function renderDashboard(){
 
     document.getElementById('pipeSize').value =
         monitor.pipeSize + 'mm';
-
-    // CHARTS
 
     updateLineChart(
         rainChart,
@@ -978,10 +895,6 @@ function renderDashboard(){
         labels,
         monitor.velocity
     );
-
-    // =====================================================
-    // CUMULATIVE
-    // =====================================================
 
     cumulativeChart.data.labels =
         labels;
@@ -1019,11 +932,9 @@ function renderDashboard(){
 
     cumulativeChart.update('none');
 
-    // =====================================================
-    // SCATTER
-    // =====================================================
+    // SIMPLE SCATTER GRAPH
 
-    const scatterData =
+    scatterChart.data.datasets[0].data =
         monitor.depth.map((d,i)=>({
 
             x:monitor.velocity[i],
@@ -1031,22 +942,7 @@ function renderDashboard(){
             y:d / 1000
         }));
 
-    scatterChart.data.datasets[0].data =
-        scatterData;
-
     scatterChart.update('none');
-
-    // =====================================================
-    // STATS
-    // =====================================================
-
-    function avg(arr){
-
-        return (
-            arr.reduce((a,b)=>a+b,0)
-            / arr.length
-        );
-    }
 
     const totalVolume =
         monitor.flow.reduce((a,b)=>
@@ -1070,8 +966,6 @@ function renderDashboard(){
 
     document.getElementById('totalVolume').innerText =
         totalVolume.toFixed(3);
-
-    // TABLE 2
 
     document.getElementById('rainDepth').innerText =
         rainData.stats.totalRain.toFixed(3);
@@ -1104,144 +998,121 @@ function renderDashboard(){
         Math.max(...monitor.velocity).toFixed(3);
 }
 
-// =====================================================
-// FILE IMPORT
-// =====================================================
-
 async function handleFiles(files){
 
-    try{
+    monitors.length = 0;
+    rainGauges.length = 0;
 
-        dropZone.innerHTML =
-            `<h2>Processing Files...</h2>`;
+    for(const file of files){
 
-        monitors.length = 0;
-        rainGauges.length = 0;
+        const text =
+            await file.text();
 
-        for(const file of files){
+        if(file.name.toLowerCase().endsWith('.fdv')){
 
-            const text =
-                await file.text();
-
-            if(file.name.toLowerCase().endsWith('.fdv')){
-
-                monitors.push(
-                    parseFDV(text)
-                );
-            }
-
-            if(file.name.toLowerCase().endsWith('.r')){
-
-                rainGauges.push(
-                    parseRain(text)
-                );
-            }
+            monitors.push(
+                parseFDV(text)
+            );
         }
 
-        monitors.sort((a,b)=>
-            a.identifier.localeCompare(b.identifier)
-        );
+        if(file.name.toLowerCase().endsWith('.r')){
 
-        rainGauges.sort((a,b)=>
-            a.identifier.localeCompare(b.identifier)
-        );
+            rainGauges.push(
+                parseRain(text)
+            );
+        }
+    }
 
-        precomputeRainAlignment();
+    monitors.sort((a,b)=>
+        a.identifier.localeCompare(b.identifier)
+    );
 
-        const monitorSelect =
-            document.getElementById('monitorSelect');
+    rainGauges.sort((a,b)=>
+        a.identifier.localeCompare(b.identifier)
+    );
 
-        const rainSelect =
-            document.getElementById('rainSelect');
+    precomputeRainAlignment();
 
-        monitorSelect.innerHTML='';
-        rainSelect.innerHTML='';
+    const monitorSelect =
+        document.getElementById('monitorSelect');
 
-        monitors.forEach((m,i)=>{
+    const rainSelect =
+        document.getElementById('rainSelect');
 
-            const op =
-                document.createElement('option');
+    monitorSelect.innerHTML='';
+    rainSelect.innerHTML='';
 
-            op.value = i;
-            op.textContent = m.identifier;
+    monitors.forEach((m,i)=>{
 
-            monitorSelect.appendChild(op);
-        });
+        const op =
+            document.createElement('option');
 
-        rainGauges.forEach(r=>{
+        op.value = i;
+        op.textContent = m.identifier;
 
-            const op =
-                document.createElement('option');
+        monitorSelect.appendChild(op);
+    });
 
-            op.value = r.identifier;
-            op.textContent = r.identifier;
+    rainGauges.forEach(r=>{
 
-            rainSelect.appendChild(op);
-        });
+        const op =
+            document.createElement('option');
 
-        initializeCharts();
+        op.value = r.identifier;
+        op.textContent = r.identifier;
 
-        document.getElementById('dropZone').style.display='none';
+        rainSelect.appendChild(op);
+    });
 
-        document.getElementById('app').style.display='block';
+    initializeCharts();
 
-        monitorSelect.onchange = ()=>{
+    document.getElementById('dropZone').style.display='none';
 
-            currentMonitorIndex =
-                parseInt(monitorSelect.value);
+    document.getElementById('app').style.display='block';
 
-            renderDashboard();
-        };
+    monitorSelect.onchange = ()=>{
 
-        rainSelect.onchange =
-            renderDashboard;
-
-        document.getElementById('leftMonitorBtn').onclick = ()=>{
-
-            currentMonitorIndex =
-                (currentMonitorIndex - 1 + monitors.length)
-                % monitors.length;
-
-            monitorSelect.value =
-                currentMonitorIndex;
-
-            renderDashboard();
-        };
-
-        document.getElementById('rightMonitorBtn').onclick = ()=>{
-
-            currentMonitorIndex =
-                (currentMonitorIndex + 1)
-                % monitors.length;
-
-            monitorSelect.value =
-                currentMonitorIndex;
-
-            renderDashboard();
-        };
-
-        document.getElementById('prevBtn').onclick =
-            document.getElementById('leftMonitorBtn').onclick;
-
-        document.getElementById('nextBtn').onclick =
-            document.getElementById('rightMonitorBtn').onclick;
+        currentMonitorIndex =
+            parseInt(monitorSelect.value);
 
         renderDashboard();
-    }
+    };
 
-    catch(err){
+    rainSelect.onchange =
+        renderDashboard;
 
-        console.error(err);
+    document.getElementById('leftMonitorBtn').onclick = ()=>{
 
-        dropZone.innerHTML =
-            `<h2>ERROR</h2>
-             <p>${err.message}</p>`;
-    }
+        currentMonitorIndex =
+            (currentMonitorIndex - 1 + monitors.length)
+            % monitors.length;
+
+        monitorSelect.value =
+            currentMonitorIndex;
+
+        renderDashboard();
+    };
+
+    document.getElementById('rightMonitorBtn').onclick = ()=>{
+
+        currentMonitorIndex =
+            (currentMonitorIndex + 1)
+            % monitors.length;
+
+        monitorSelect.value =
+            currentMonitorIndex;
+
+        renderDashboard();
+    };
+
+    document.getElementById('prevBtn').onclick =
+        document.getElementById('leftMonitorBtn').onclick;
+
+    document.getElementById('nextBtn').onclick =
+        document.getElementById('rightMonitorBtn').onclick;
+
+    renderDashboard();
 }
-
-// =====================================================
-// DRAG DROP
-// =====================================================
 
 const dropZone =
     document.getElementById('dropZone');
