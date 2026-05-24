@@ -807,7 +807,16 @@ function initializeCharts(){
                     datasets:[]
                 },
 
-                options:{
+                interaction:{
+    mode:'index',
+    intersect:false
+},
+
+plugins:{
+    tooltip:{
+        enabled:true
+    }
+},
 
                     responsive:true,
                     maintainAspectRatio:false,
