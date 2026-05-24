@@ -1009,36 +1009,10 @@ function renderDashboard(){
 
     ticks:{
 
-        autoSkip:false,
+        maxTicksLimit:6,
 
-        callback:function(value,index){
-
-            const total =
-                labels.length;
-
-            if(index === 0){
-
-                return formatDate(labels[index]);
-            }
-
-            if(index === total - 1){
-
-                return formatDate(labels[index]);
-            }
-
-            const interval =
-                Math.floor(total / 5);
-
-            if(
-                interval > 0 &&
-                index % interval === 0
-            ){
-
-                return formatDate(labels[index]);
-            }
-
-            return '';
-        },
+        callback:(value)=>
+            formatDate(labels[value]),
 
         maxRotation:0,
         minRotation:0
