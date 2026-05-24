@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V7</title>
+<title>Flow Survey Dashboard V8</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -191,7 +191,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V7
+    Flow Survey Dashboard V8
 </div>
 
 <div id="dropZone">
@@ -832,8 +832,8 @@ function initializeCharts(){
                 data:{
                     datasets:[{
                         data:[],
-                        backgroundColor:'#ff4d4d',
-                        pointRadius:2
+                        backgroundColor:'rgba(0,128,0,0.75)',
+                        pointRadius:1
                     }]
                 },
 
@@ -855,7 +855,7 @@ function initializeCharts(){
                                 text:'Velocity (m/s)'
                             },
                             min:0,
-                            grace:'10%'
+                            grace:'5%'
                         },
 
                         y:{
@@ -864,7 +864,7 @@ function initializeCharts(){
                                 text:'Depth (m)'
                             },
                             min:0,
-                            grace:'10%'
+                            grace:'5%'
                         }
                     }
                 }
@@ -969,14 +969,14 @@ function renderDashboard(){
 
     cumulativeChart.update('none');
 
-    // SIMPLE SCATTER GRAPH
+    // IMPROVED SCATTER GRAPH
 
     const scatterData = [];
 
     const factor =
         Math.max(
             1,
-            Math.ceil(monitor.depth.length / 1500)
+            Math.ceil(monitor.depth.length / 8000)
         );
 
     for(let i=0;i<monitor.depth.length;i+=factor){
