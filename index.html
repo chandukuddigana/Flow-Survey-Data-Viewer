@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V24 Stable</title>
+<title>Flow Survey Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -119,7 +119,7 @@ body{
 
 canvas{
     width:100% !important;
-    background:#ffffff !important;
+    background:white !important;
 }
 
 .controls-box{
@@ -194,7 +194,7 @@ select,input{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V24 Stable
+    Flow Survey Dashboard
 </div>
 
 <div id="dropZone">
@@ -327,61 +327,6 @@ select,input{
 
         </table>
 
-        <table class="stats-table">
-
-            <thead>
-
-                <tr>
-                    <th colspan="3">Rainfall</th>
-                    <th colspan="2">Depth</th>
-                    <th colspan="3">Flow</th>
-                    <th colspan="2">Velocity</th>
-                </tr>
-
-                <tr>
-
-                    <th>Depth (mm)</th>
-                    <th>Peak (mm/hr)</th>
-                    <th>Average (mm/hr)</th>
-
-                    <th>Min (mm)</th>
-                    <th>Max (mm)</th>
-
-                    <th>Min (l/s)</th>
-                    <th>Max (l/s)</th>
-                    <th>Volume (m³)</th>
-
-                    <th>Min (m/s)</th>
-                    <th>Max (m/s)</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                <tr>
-
-                    <td id="rainDepth"></td>
-                    <td id="rainPeak"></td>
-                    <td id="rainAverage"></td>
-
-                    <td id="depthMin"></td>
-                    <td id="depthMax"></td>
-
-                    <td id="flowMin"></td>
-                    <td id="flowMax"></td>
-                    <td id="flowVolume"></td>
-
-                    <td id="velocityMin"></td>
-                    <td id="velocityMax"></td>
-
-                </tr>
-
-            </tbody>
-
-        </table>
-
     </div>
 
 </div>
@@ -402,11 +347,11 @@ let scatterChart;
 
 Chart.defaults.animation = false;
 
-const chartAreaBackgroundPlugin = {
+const whiteBackgroundPlugin = {
 
-    id:'chartAreaBackground',
+    id:'whiteBackground',
 
-    beforeDraw(chart,args,pluginOptions){
+    beforeDraw(chart){
 
         const {
             ctx,
@@ -419,8 +364,7 @@ const chartAreaBackgroundPlugin = {
         ctx.globalCompositeOperation =
             'destination-over';
 
-        ctx.fillStyle =
-            pluginOptions.color || '#ffffff';
+        ctx.fillStyle = '#ffffff';
 
         ctx.fillRect(
             0,
@@ -433,7 +377,7 @@ const chartAreaBackgroundPlugin = {
     }
 };
 
-Chart.register(chartAreaBackgroundPlugin);
+Chart.register(whiteBackgroundPlugin);
 
 function parseYYMMDDHHMM(str){
 
@@ -443,7 +387,13 @@ function parseYYMMDDHHMM(str){
     const hh = parseInt(str.slice(6,8));
     const mi = parseInt(str.slice(8,10));
 
-    return new Date(2000+yy,mm,dd,hh,mi);
+    return new Date(
+        2000+yy,
+        mm,
+        dd,
+        hh,
+        mi
+    );
 }
 
 function formatDate(date){
@@ -455,14 +405,6 @@ function formatDate(date){
             month:'short'
         }
     );
-}
-
-function formatDateTime(date){
-
-    const pad = n => String(n).padStart(2,'0');
-
-    return `${pad(date.getDate())}/${pad(date.getMonth()+1)}/${date.getFullYear()} `
-        + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 function generateTimeline(start,interval,count){
@@ -550,14 +492,12 @@ function parseFDV(text){
     return {
 
         identifier,
-
         timestamps:
             generateTimeline(
                 start,
                 interval,
                 depth.length
             ),
-
         flow,
         depth,
         velocity,
@@ -605,76 +545,17 @@ function parseRain(text){
     return {
 
         identifier,
-
         timestamps:
             generateTimeline(
                 start,
                 interval,
                 intensity.length
             ),
-
         intensity
     };
 }
 
-function commonXAxis(labels){
-
-    return {
-
-        ticks:{
-
-            maxTicksLimit:10,
-
-            callback:(value)=>
-                formatDate(labels[value]),
-
-            maxRotation:0,
-            minRotation:0
-        }
-    };
-}
-
-function cumulativeXAxis(labels){
-
-    return {
-
-        ticks:{
-
-            autoSkip:false,
-
-            callback:function(value,index){
-
-                const total =
-                    labels.length;
-
-                if(index===0){
-
-                    return formatDate(labels[index]);
-                }
-
-                if(index===total-1){
-
-                    return formatDate(labels[index]);
-                }
-
-                const interval =
-                    Math.floor(total/4);
-
-                if(interval>0 && index%interval===0){
-
-                    return formatDate(labels[index]);
-                }
-
-                return '';
-            },
-
-            maxRotation:0,
-            minRotation:0
-        }
-    };
-}
-
-function createLineChart(id,color,yTitle,reverse=false){
+function createLineChart(id,color){
 
     return new Chart(
         document.getElementById(id),
@@ -695,24 +576,8 @@ function createLineChart(id,color,yTitle,reverse=false){
             options:{
                 responsive:true,
                 maintainAspectRatio:false,
-                animation:false,
-
                 plugins:{
-                    legend:{display:false},
-                    chartAreaBackground:{
-                        color:'#ffffff'
-                    }
-                },
-
-                scales:{
-                    x:{},
-                    y:{
-                        reverse,
-                        title:{
-                            display:true,
-                            text:yTitle
-                        }
-                    }
+                    legend:{display:false}
                 }
             }
         }
@@ -724,30 +589,25 @@ function initializeCharts(){
     rainChart =
         createLineChart(
             'rainChart',
-            '#002b7f',
-            'Rainfall Intensity (mm/hr)',
-            true
+            '#003f9e'
         );
 
     depthChart =
         createLineChart(
             'depthChart',
-            '#00b050',
-            'Depth (mm)'
+            '#00b050'
         );
 
     flowChart =
         createLineChart(
             'flowChart',
-            '#00b050',
-            'Flow (l/s)'
+            '#00b050'
         );
 
     velocityChart =
         createLineChart(
             'velocityChart',
-            '#00b050',
-            'Velocity (m/s)'
+            '#00b050'
         );
 
     cumulativeChart =
@@ -762,53 +622,23 @@ function initializeCharts(){
                 },
 
                 options:{
-
                     responsive:true,
                     maintainAspectRatio:false,
-                    animation:false,
 
                     plugins:{
-
-                        chartAreaBackground:{
-                            color:'#ffffff'
-                        },
-
                         legend:{
                             position:'top',
                             labels:{
                                 boxWidth:10,
-                                font:{size:10},
-                                color:'#444'
+                                font:{size:10}
                             }
                         }
                     },
 
                     scales:{
-
                         x:{
-                            grid:{
-                                color:'#e0e0e0'
-                            },
                             ticks:{
-                                color:'#555'
-                            }
-                        },
-
-                        y:{
-                            beginAtZero:true,
-
-                            title:{
-                                display:true,
-                                text:'Rainfall (mm)',
-                                color:'#555'
-                            },
-
-                            grid:{
-                                color:'#e0e0e0'
-                            },
-
-                            ticks:{
-                                color:'#555'
+                                maxTicksLimit:5
                             }
                         }
                     }
@@ -826,42 +656,270 @@ function initializeCharts(){
                     datasets:[{
                         data:[],
                         pointStyle:'crossRot',
-                        backgroundColor:'rgba(100,100,100,0.9)',
-                        borderColor:'rgba(100,100,100,0.9)',
-                        pointRadius:2
+                        pointRadius:2,
+                        backgroundColor:'red',
+                        borderColor:'red'
                     }]
                 },
 
                 options:{
                     responsive:true,
                     maintainAspectRatio:false,
-
                     plugins:{
-                        legend:{display:false},
-                        chartAreaBackground:{
-                            color:'#ffffff'
-                        }
-                    },
-
-                    scales:{
-                        x:{
-                            title:{
-                                display:true,
-                                text:'Velocity (m/s)'
-                            }
-                        },
-
-                        y:{
-                            title:{
-                                display:true,
-                                text:'Depth (m)'
-                            }
-                        }
+                        legend:{display:false}
                     }
                 }
             }
         );
 }
+
+function renderDashboard(){
+
+    const monitor =
+        monitors[currentMonitorIndex];
+
+    const labels =
+        monitor.timestamps;
+
+    document.getElementById('monitorTitle').innerText =
+        monitor.identifier;
+
+    document.getElementById('scatterTitle').innerText =
+        `SCATTER GRAPH - ${monitor.identifier}`;
+
+    document.getElementById('pipeSize').value =
+        monitor.pipeSize + ' mm';
+
+    rainChart.data.labels = labels;
+    rainChart.data.datasets[0].data =
+        new Array(labels.length).fill(0);
+
+    rainChart.update();
+
+    depthChart.data.labels = labels;
+    depthChart.data.datasets[0].data =
+        monitor.depth;
+
+    depthChart.update();
+
+    flowChart.data.labels = labels;
+    flowChart.data.datasets[0].data =
+        monitor.flow;
+
+    flowChart.update();
+
+    velocityChart.data.labels = labels;
+    velocityChart.data.datasets[0].data =
+        monitor.velocity;
+
+    velocityChart.update();
+
+    cumulativeChart.data.labels = labels;
+
+    cumulativeChart.data.datasets =
+        rainGauges.map((rg,index)=>{
+
+            let total=0;
+
+            const cumulative=[];
+
+            rg.intensity.forEach(v=>{
+
+                total+=v;
+
+                cumulative.push(total);
+            });
+
+            return{
+
+                label:rg.identifier,
+
+                data:cumulative,
+
+                borderColor:[
+                    '#1f77b4',
+                    '#2ca02c',
+                    '#ff7f0e'
+                ][index % 3],
+
+                borderWidth:1.5,
+
+                pointRadius:0,
+
+                tension:0
+            };
+        });
+
+    cumulativeChart.update();
+
+    scatterChart.data.datasets[0].data =
+        monitor.depth.map((d,i)=>({
+
+            x:monitor.velocity[i],
+            y:d/1000
+        }));
+
+    scatterChart.update();
+
+    document.getElementById('timeRange').innerText =
+        formatDate(labels[0])
+        + ' - ' +
+        formatDate(labels[labels.length-1]);
+
+    document.getElementById('totalRain').innerText =
+        '0.000';
+
+    document.getElementById('totalVolume').innerText =
+        '0.000';
+}
+
+async function handleFiles(files){
+
+    monitors.length=0;
+    rainGauges.length=0;
+
+    const loadingText =
+        document.getElementById('loadingText');
+
+    let processed=0;
+
+    for(const file of files){
+
+        const text =
+            await file.text();
+
+        if(
+            file.name.toLowerCase().endsWith('.fdv')
+        ){
+
+            monitors.push(
+                parseFDV(text)
+            );
+        }
+
+        if(
+            file.name.toLowerCase().endsWith('.r')
+        ){
+
+            rainGauges.push(
+                parseRain(text)
+            );
+        }
+
+        processed++;
+
+        loadingText.innerHTML =
+            `Processing ${processed} / ${files.length}`;
+    }
+
+    initializeCharts();
+
+    const monitorSelect =
+        document.getElementById('monitorSelect');
+
+    const rainSelect =
+        document.getElementById('rainSelect');
+
+    monitorSelect.innerHTML='';
+    rainSelect.innerHTML='';
+
+    monitors.forEach((m,i)=>{
+
+        const op =
+            document.createElement('option');
+
+        op.value=i;
+        op.textContent=m.identifier;
+
+        monitorSelect.appendChild(op);
+    });
+
+    rainGauges.forEach(r=>{
+
+        const op =
+            document.createElement('option');
+
+        op.value=r.identifier;
+        op.textContent=r.identifier;
+
+        rainSelect.appendChild(op);
+    });
+
+    monitorSelect.onchange=()=>{
+
+        currentMonitorIndex =
+            parseInt(monitorSelect.value);
+
+        renderDashboard();
+    };
+
+    rainSelect.onchange =
+        renderDashboard;
+
+    document.getElementById('prevBtn').onclick=()=>{
+
+        currentMonitorIndex =
+            (currentMonitorIndex-1+monitors.length)
+            % monitors.length;
+
+        monitorSelect.value =
+            currentMonitorIndex;
+
+        renderDashboard();
+    };
+
+    document.getElementById('nextBtn').onclick=()=>{
+
+        currentMonitorIndex =
+            (currentMonitorIndex+1)
+            % monitors.length;
+
+        monitorSelect.value =
+            currentMonitorIndex;
+
+        renderDashboard();
+    };
+
+    document.getElementById('leftMonitorBtn').onclick =
+        document.getElementById('prevBtn').onclick;
+
+    document.getElementById('rightMonitorBtn').onclick =
+        document.getElementById('nextBtn').onclick;
+
+    document.getElementById('dropZone').style.display =
+        'none';
+
+    document.getElementById('app').style.display =
+        'block';
+
+    renderDashboard();
+}
+
+const dropZone =
+    document.getElementById('dropZone');
+
+dropZone.addEventListener('dragover',e=>{
+
+    e.preventDefault();
+
+    dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave',()=>{
+
+    dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop',e=>{
+
+    e.preventDefault();
+
+    dropZone.classList.remove('dragover');
+
+    handleFiles(
+        e.dataTransfer.files
+    );
+});
 
 </script>
 
