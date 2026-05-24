@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V16</title>
+<title>Flow Survey Dashboard V17</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -196,7 +196,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V16
+    Flow Survey Dashboard V17
 </div>
 
 <div id="dropZone">
@@ -383,7 +383,10 @@ function commonXAxis(labels){
             maxTicksLimit:10,
 
             callback:(value)=>
-                formatDate(labels[value])
+                formatDate(labels[value]),
+
+            maxRotation:0,
+            minRotation:0
         }
     };
 }
@@ -394,30 +397,39 @@ function cumulativeXAxis(labels){
 
         ticks:{
 
-            maxTicksLimit:5,
+            autoSkip:false,
 
-            callback:(value,index,ticks)=>{
+            callback:function(value,index){
 
+                const total =
+                    labels.length;
+
+                // FIRST DATE
                 if(index === 0){
 
                     return formatDate(labels[index]);
                 }
 
-                if(index === ticks.length - 1){
+                // LAST DATE
+                if(index === total - 1){
 
                     return formatDate(labels[index]);
                 }
 
+                // INTERMEDIATE DATES
                 const interval =
-                    Math.ceil(ticks.length / 4);
+                    Math.floor(total / 4);
 
-                if(index % interval === 0){
+                if(interval > 0 && index % interval === 0){
 
                     return formatDate(labels[index]);
                 }
 
                 return '';
-            }
+            },
+
+            maxRotation:0,
+            minRotation:0
         }
     };
 }
@@ -681,8 +693,11 @@ function initializeCharts(){
                 data:{
                     datasets:[{
                         data:[],
-                        backgroundColor:'rgba(180,0,0,0.7)',
-                        pointRadius:1.5
+                        pointStyle:'crossRot',
+                        backgroundColor:'rgba(100,100,100,0.85)',
+                        borderColor:'rgba(100,100,100,0.85)',
+                        pointRadius:2,
+                        pointHoverRadius:2
                     }]
                 },
 
