@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V15</title>
+<title>Flow Survey Dashboard V16</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -196,7 +196,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V15
+    Flow Survey Dashboard V16
 </div>
 
 <div id="dropZone">
@@ -348,10 +348,13 @@ function parseYYMMDDHHMM(str){
 
 function formatDate(date){
 
-    return date.toLocaleDateString('en-GB',{
-        day:'2-digit',
-        month:'short'
-    });
+    return date.toLocaleDateString(
+        'en-GB',
+        {
+            day:'2-digit',
+            month:'short'
+        }
+    );
 }
 
 function generateTimeline(start, interval, count){
@@ -361,23 +364,77 @@ function generateTimeline(start, interval, count){
     for(let i=0;i<count;i++){
 
         arr.push(
-            new Date(start.getTime() + i * interval * 60000)
+            new Date(
+                start.getTime()
+                + i * interval * 60000
+            )
         );
     }
 
     return arr;
 }
 
+function commonXAxis(labels){
+
+    return {
+
+        ticks:{
+
+            maxTicksLimit:10,
+
+            callback:(value)=>
+                formatDate(labels[value])
+        }
+    };
+}
+
+function cumulativeXAxis(labels){
+
+    return {
+
+        ticks:{
+
+            maxTicksLimit:5,
+
+            callback:(value,index,ticks)=>{
+
+                if(index === 0){
+
+                    return formatDate(labels[index]);
+                }
+
+                if(index === ticks.length - 1){
+
+                    return formatDate(labels[index]);
+                }
+
+                const interval =
+                    Math.ceil(ticks.length / 4);
+
+                if(index % interval === 0){
+
+                    return formatDate(labels[index]);
+                }
+
+                return '';
+            }
+        }
+    };
+}
+
 function parseFDV(text){
 
-    const lines = text.split(/\r?\n/);
+    const lines =
+        text.split(/\r?\n/);
 
     const identifier =
         text.match(/\b(FM|DM|RM)\d+\b/i)[0]
         .toUpperCase();
 
     const dateLine =
-        lines.find(l => /^\d{10}/.test(l.trim()));
+        lines.find(l =>
+            /^\d{10}/.test(l.trim())
+        );
 
     const parts =
         dateLine.trim().split(/\s+/);
@@ -397,13 +454,11 @@ function parseFDV(text){
 
     if(cstartIndex >= 0){
 
-        const constantLine =
-            lines[cstartIndex + 1];
-
         const nums =
-            constantLine.match(/-?\d+\.?\d*/g);
+            lines[cstartIndex + 1]
+            .match(/-?\d+\.?\d*/g);
 
-        if(nums && nums.length > 0){
+        if(nums){
 
             pipeSize =
                 parseFloat(nums[0]);
@@ -434,20 +489,22 @@ function parseFDV(text){
         velocity.push(nums[i+2] || 0);
     }
 
-    const timestamps =
-        generateTimeline(
-            start,
-            interval,
-            depth.length
-        );
-
     return {
+
         identifier,
-        timestamps,
+
+        timestamps:
+            generateTimeline(
+                start,
+                interval,
+                depth.length
+            ),
+
         flow,
         depth,
         velocity,
         pipeSize,
+        interval,
         type:identifier.substring(0,2)
     };
 }
@@ -488,16 +545,17 @@ function parseRain(text){
         .split(/\s+/)
         .map(Number);
 
-    const timestamps =
-        generateTimeline(
-            start,
-            interval,
-            intensity.length
-        );
-
     return {
+
         identifier,
-        timestamps,
+
+        timestamps:
+            generateTimeline(
+                start,
+                interval,
+                intensity.length
+            ),
+
         intensity
     };
 }
@@ -580,10 +638,12 @@ function initializeCharts(){
             document.getElementById('cumulativeChart'),
             {
                 type:'line',
+
                 data:{
                     labels:[],
                     datasets:[]
                 },
+
                 options:{
                     responsive:true,
                     maintainAspectRatio:false,
@@ -600,11 +660,7 @@ function initializeCharts(){
                     },
 
                     scales:{
-                        x:{
-                            ticks:{
-                                maxTicksLimit:5
-                            }
-                        },
+                        x:{},
                         y:{
                             title:{
                                 display:true,
@@ -666,6 +722,9 @@ function renderDashboard(){
     const rainId =
         document.getElementById('rainSelect').value;
 
+    const labels =
+        monitor.timestamps;
+
     document.getElementById('monitorTitle').innerText =
         monitor.identifier;
 
@@ -675,9 +734,6 @@ function renderDashboard(){
     document.getElementById('pipeSize').value =
         monitor.pipeSize + ' mm';
 
-    const labels =
-        monitor.timestamps;
-
     const rg =
         rainGauges.find(r =>
             r.identifier === rainId
@@ -686,7 +742,10 @@ function renderDashboard(){
     const rainMap = new Map();
 
     rg.timestamps.forEach((t,i)=>{
-        rainMap.set(t.getTime(), rg.intensity[i]);
+        rainMap.set(
+            t.getTime(),
+            rg.intensity[i]
+        );
     });
 
     const alignedRain =
@@ -696,18 +755,26 @@ function renderDashboard(){
 
     rainChart.data.labels = labels;
     rainChart.data.datasets[0].data = alignedRain;
+    rainChart.options.scales.x =
+        commonXAxis(labels);
     rainChart.update('none');
 
     depthChart.data.labels = labels;
     depthChart.data.datasets[0].data = monitor.depth;
+    depthChart.options.scales.x =
+        commonXAxis(labels);
     depthChart.update('none');
 
     flowChart.data.labels = labels;
     flowChart.data.datasets[0].data = monitor.flow;
+    flowChart.options.scales.x =
+        commonXAxis(labels);
     flowChart.update('none');
 
     velocityChart.data.labels = labels;
     velocityChart.data.datasets[0].data = monitor.velocity;
+    velocityChart.options.scales.x =
+        commonXAxis(labels);
     velocityChart.update('none');
 
     const palette = [
@@ -731,7 +798,10 @@ function renderDashboard(){
             const map = new Map();
 
             rg.timestamps.forEach((t,index)=>{
-                map.set(t.getTime(), rg.intensity[index]);
+                map.set(
+                    t.getTime(),
+                    rg.intensity[index]
+                );
             });
 
             labels.forEach(t=>{
@@ -739,7 +809,8 @@ function renderDashboard(){
                 const val =
                     map.get(t.getTime()) || 0;
 
-                total += val * (5/60);
+                total +=
+                    val * (monitor.interval / 60);
 
                 cumulative.push(total);
             });
@@ -767,6 +838,9 @@ function renderDashboard(){
                 tension:0
             };
         });
+
+    cumulativeChart.options.scales.x =
+        cumulativeXAxis(labels);
 
     cumulativeChart.update('none');
 
@@ -872,6 +946,36 @@ async function handleFiles(files){
 
     rainSelect.onchange=
         renderDashboard;
+
+    document.getElementById('prevBtn').onclick=()=>{
+
+        currentMonitorIndex =
+            (currentMonitorIndex - 1 + monitors.length)
+            % monitors.length;
+
+        monitorSelect.value =
+            currentMonitorIndex;
+
+        renderDashboard();
+    };
+
+    document.getElementById('nextBtn').onclick=()=>{
+
+        currentMonitorIndex =
+            (currentMonitorIndex + 1)
+            % monitors.length;
+
+        monitorSelect.value =
+            currentMonitorIndex;
+
+        renderDashboard();
+    };
+
+    document.getElementById('leftMonitorBtn').onclick =
+        document.getElementById('prevBtn').onclick;
+
+    document.getElementById('rightMonitorBtn').onclick =
+        document.getElementById('nextBtn').onclick;
 
     document.getElementById('dropZone').style.display='none';
 
