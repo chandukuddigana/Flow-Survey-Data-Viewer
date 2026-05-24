@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V22 Stable</title>
+<title>Flow Survey Dashboard V23 Stable</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -120,10 +121,6 @@ canvas{
     width:100% !important;
 }
 
-#cumulativeChart{
-    background:#ffffff !important;
-}
-
 .controls-box{
     background:white;
     border:1px solid #d7d7d7;
@@ -196,7 +193,7 @@ select,input{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V22 Stable
+    Flow Survey Dashboard V23 Stable
 </div>
 
 <div id="dropZone">
@@ -401,6 +398,41 @@ let flowChart;
 let velocityChart;
 let cumulativeChart;
 let scatterChart;
+
+Chart.defaults.animation = false;
+
+const chartAreaBackgroundPlugin = {
+
+    id:'chartAreaBackgroundPlugin',
+
+    beforeDraw(chart,args,options){
+
+        const {
+            ctx,
+            chartArea
+        } = chart;
+
+        if(!chartArea){
+            return;
+        }
+
+        ctx.save();
+
+        ctx.fillStyle =
+            options.color || '#ffffff';
+
+        ctx.fillRect(
+            chartArea.left,
+            chartArea.top,
+            chartArea.right - chartArea.left,
+            chartArea.bottom - chartArea.top
+        );
+
+        ctx.restore();
+    }
+};
+
+Chart.register(chartAreaBackgroundPlugin);
 
 function parseYYMMDDHHMM(str){
 
@@ -665,7 +697,10 @@ function createLineChart(id,color,yTitle,reverse=false){
                 animation:false,
 
                 plugins:{
-                    legend:{display:false}
+                    legend:{display:false},
+                    chartAreaBackgroundPlugin:{
+                        color:'#ffffff'
+                    }
                 },
 
                 scales:{
@@ -731,6 +766,10 @@ function initializeCharts(){
                     animation:false,
 
                     plugins:{
+                        chartAreaBackgroundPlugin:{
+                            color:'#ffffff'
+                        },
+
                         legend:{
                             position:'top',
                             labels:{
@@ -774,7 +813,10 @@ function initializeCharts(){
                     maintainAspectRatio:false,
 
                     plugins:{
-                        legend:{display:false}
+                        legend:{display:false},
+                        chartAreaBackgroundPlugin:{
+                            color:'#ffffff'
+                        }
                     },
 
                     scales:{
