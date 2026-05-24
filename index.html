@@ -149,6 +149,8 @@ input{
 
 canvas{
     width:100% !important;
+    width:100% !important;
+    background:white !important;
     background:#ffffff !important;
 }
 
@@ -743,11 +745,6 @@ function createChart(canvasId, color, yTitle, reverse=false){
                 maintainAspectRatio:false,
                 animation:false,
 
-                interaction:{
-                    mode:'index',
-                    intersect:false
-                },
-
                 plugins:{
 
                     legend:{
@@ -755,7 +752,21 @@ function createChart(canvasId, color, yTitle, reverse=false){
                     },
 
                     tooltip:{
-                        enabled:true
+
+                        enabled:true,
+
+                        callbacks:{
+
+                            title:function(context){
+
+                                return formatDateTime(
+
+                                    new Date(
+                                        context[0].label
+                                    )
+                                );
+                            }
+                        }
                     }
                 },
 
@@ -823,15 +834,24 @@ function initializeCharts(){
                     maintainAspectRatio:false,
                     animation:false,
 
-                    interaction:{
-                        mode:'index',
-                        intersect:false
-                    },
-
                     plugins:{
 
                         tooltip:{
-                            enabled:true
+
+                            enabled:true,
+
+                            callbacks:{
+
+                                title:function(context){
+
+                                    return formatDateTime(
+
+                                        new Date(
+                                            context[0].label
+                                        )
+                                    );
+                                }
+                            }
                         },
 
                         legend:{
@@ -878,11 +898,6 @@ function initializeCharts(){
                     responsive:true,
                     maintainAspectRatio:false,
                     animation:false,
-
-                    interaction:{
-                        mode:'nearest',
-                        intersect:false
-                    },
 
                     plugins:{
 
@@ -1051,17 +1066,17 @@ function renderDashboard(){
 
     cumulativeChart.options.scales.x = {
 
-        ticks:{
+    ticks:{
 
-            maxTicksLimit:6,
+        maxTicksLimit:6,
 
-            callback:(value)=>
-                formatDate(labels[value]),
+        callback:(value)=>
+            formatDate(labels[value]),
 
-            maxRotation:0,
-            minRotation:0
-        }
-    };
+        maxRotation:0,
+        minRotation:0
+    }
+};
 
     cumulativeChart.update('none');
 
