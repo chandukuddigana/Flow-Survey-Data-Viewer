@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V8</title>
+<title>Flow Survey Dashboard V9</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -184,6 +184,10 @@ canvas{
     font-size:12px;
 }
 
+.greyed{
+    opacity:0.25;
+}
+
 </style>
 
 </head>
@@ -191,7 +195,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V8
+    Flow Survey Dashboard V9
 </div>
 
 <div id="dropZone">
@@ -217,8 +221,6 @@ canvas{
     </div>
 
     <div class="dashboard-layout">
-
-        <!-- LEFT PANEL -->
 
         <div class="left-panel">
 
@@ -263,8 +265,6 @@ canvas{
             </div>
 
         </div>
-
-        <!-- RIGHT PANEL -->
 
         <div class="right-panel">
 
@@ -314,7 +314,7 @@ canvas{
 
             </div>
 
-            <div class="chart-box">
+            <div class="chart-box" id="scatterContainer">
 
                 <div class="chart-title red-title">
                     Velocity vs Depth Correlation
@@ -327,8 +327,6 @@ canvas{
         </div>
 
     </div>
-
-    <!-- STATS -->
 
     <div class="stats-box">
 
@@ -456,6 +454,14 @@ function formatDate(date){
     });
 }
 
+function formatDateTime(date){
+
+    const pad = n => String(n).padStart(2,'0');
+
+    return `${pad(date.getDate())}/${pad(date.getMonth()+1)}/${date.getFullYear()} `
+        + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 function generateTimeline(start, interval, count){
 
     const arr = [];
@@ -546,8 +552,14 @@ function parseFDV(text){
             depth.length
         );
 
+    let type='FM';
+
+    if(identifier.startsWith('DM')) type='DM';
+    if(identifier.startsWith('RM')) type='RM';
+
     return {
         identifier,
+        type,
         start,
         end,
         interval,
@@ -832,7 +844,7 @@ function initializeCharts(){
                 data:{
                     datasets:[{
                         data:[],
-                        backgroundColor:'rgba(0,128,0,0.75)',
+                        backgroundColor:'rgba(255,0,0,0.85)',
                         pointRadius:1
                     }]
                 },
@@ -854,8 +866,10 @@ function initializeCharts(){
                                 display:true,
                                 text:'Velocity (m/s)'
                             },
-                            min:0,
-                            grace:'5%'
+                            ticks:{
+                                stepSize:0.5
+                            },
+                            min:0
                         },
 
                         y:{
@@ -863,8 +877,10 @@ function initializeCharts(){
                                 display:true,
                                 text:'Depth (m)'
                             },
-                            min:0,
-                            grace:'5%'
+                            ticks:{
+                                stepSize:0.04
+                            },
+                            min:0
                         }
                     }
                 }
@@ -948,6 +964,9 @@ function renderDashboard(){
             const rgData =
                 monitor.rainCache[rg.identifier];
 
+            const selected =
+                rg.identifier === rainId;
+
             return {
 
                 label:
@@ -956,7 +975,10 @@ function renderDashboard(){
                 data:rgData.cumulative,
 
                 borderColor:
-                    colors[i % colors.length],
+                    selected ? '#ff0000' : colors[i % colors.length],
+
+                backgroundColor:
+                    selected ? '#ff0000' : colors[i % colors.length],
 
                 borderWidth:2,
 
@@ -969,28 +991,42 @@ function renderDashboard(){
 
     cumulativeChart.update('none');
 
-    // IMPROVED SCATTER GRAPH
+    // SCATTER GRAPH
 
-    const scatterData = [];
+    const scatterContainer =
+        document.getElementById('scatterContainer');
 
-    const factor =
-        Math.max(
-            1,
-            Math.ceil(monitor.depth.length / 8000)
-        );
+    if(monitor.type === 'DM'){
 
-    for(let i=0;i<monitor.depth.length;i+=factor){
+        scatterContainer.classList.add('greyed');
 
-        scatterData.push({
+        scatterChart.data.datasets[0].data = [];
 
-            x:monitor.velocity[i],
+    }else{
 
-            y:monitor.depth[i] / 1000
-        });
+        scatterContainer.classList.remove('greyed');
+
+        const scatterData = [];
+
+        const factor =
+            Math.max(
+                1,
+                Math.ceil(monitor.depth.length / 8000)
+            );
+
+        for(let i=0;i<monitor.depth.length;i+=factor){
+
+            scatterData.push({
+
+                x:monitor.velocity[i],
+
+                y:monitor.depth[i] / 1000
+            });
+        }
+
+        scatterChart.data.datasets[0].data =
+            scatterData;
     }
-
-    scatterChart.data.datasets[0].data =
-        scatterData;
 
     scatterChart.update('none');
 
@@ -1009,7 +1045,7 @@ function renderDashboard(){
     }
 
     document.getElementById('timeRange').innerText =
-        `${monitor.start.toLocaleString()} - ${monitor.end.toLocaleString()}`;
+        `${formatDateTime(monitor.start)} - ${formatDateTime(monitor.end)}`;
 
     document.getElementById('totalRain').innerText =
         rainData.stats.totalRain.toFixed(2);
