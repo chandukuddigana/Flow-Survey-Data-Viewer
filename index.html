@@ -1135,7 +1135,16 @@ function renderDashboard(){
     document.getElementById('maxFlow').innerText =
         Math.max(...monitor.flow).toFixed(2);
 
-    document.getElementById('minVelocity').innerText =
+    let validVelocity =
+    monitor.velocity.filter(v => v > 0);
+
+if(validVelocity.length === 0){
+
+    validVelocity = [0];
+}
+
+document.getElementById('minVelocity').innerText =
+    Math.min(...validVelocity).toFixed(2);
         Math.min(...monitor.velocity).toFixed(2);
 
     document.getElementById('avgVelocity').innerText =
