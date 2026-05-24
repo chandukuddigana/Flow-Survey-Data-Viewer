@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V21</title>
+<title>Flow Survey Dashboard V22 Stable</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
 <style>
 
@@ -23,7 +21,7 @@ body{
 .header{
     background:#1f2937;
     color:white;
-    padding:16px 24px;
+    padding:14px 20px;
     font-size:24px;
     font-weight:bold;
 }
@@ -36,7 +34,6 @@ body{
     padding:60px;
     text-align:center;
     font-size:20px;
-    transition:0.3s;
     cursor:pointer;
 }
 
@@ -50,9 +47,8 @@ body{
 }
 
 .loading-box{
-    margin-top:20px;
+    margin-top:12px;
     font-size:14px;
-    color:#444;
 }
 
 .top-header{
@@ -61,7 +57,7 @@ body{
     align-items:center;
     gap:20px;
     margin-top:10px;
-    font-size:28px;
+    font-size:30px;
     font-weight:bold;
     color:#e53935;
 }
@@ -69,16 +65,16 @@ body{
 .nav-btn{
     border:none;
     background:none;
-    color:#e53935;
     font-size:24px;
+    color:#e53935;
     cursor:pointer;
 }
 
 .dashboard-layout{
     display:grid;
     grid-template-columns:5fr 1fr;
-    gap:20px;
-    padding:10px 20px 20px;
+    gap:16px;
+    padding:12px 20px;
 }
 
 .left-panel{
@@ -103,13 +99,29 @@ body{
 .chart-title{
     font-size:11px;
     font-weight:bold;
-    margin-bottom:5px;
-    text-transform:uppercase;
     color:#002d72;
+    text-transform:uppercase;
+    margin-bottom:6px;
 }
 
 .red-title{
     color:#d62828;
+}
+
+.main-chart{
+    height:170px !important;
+}
+
+.small-chart{
+    height:240px !important;
+}
+
+canvas{
+    width:100% !important;
+}
+
+#cumulativeChart{
+    background:#ffffff !important;
 }
 
 .controls-box{
@@ -127,8 +139,8 @@ body{
     display:block;
     font-size:11px;
     font-weight:bold;
-    margin-bottom:5px;
     text-transform:uppercase;
+    margin-bottom:5px;
 }
 
 .monitor-select-row{
@@ -136,29 +148,15 @@ body{
     gap:6px;
 }
 
-select,
-input{
-    width:100%;
-    padding:7px;
-    box-sizing:border-box;
-}
-
 .monitor-arrow{
     width:28px;
     cursor:pointer;
 }
 
-canvas{
-    width:100% !important;
-    background:white !important;
-}
-
-.main-chart{
-    height:170px !important;
-}
-
-.small-chart{
-    height:240px !important;
+select,input{
+    width:100%;
+    padding:7px;
+    box-sizing:border-box;
 }
 
 .stats-box{
@@ -174,10 +172,10 @@ canvas{
 
 .stats-table th{
     border:1px solid #2d4ea2;
+    background:#f2f4f8;
     color:#1b2f7a;
     padding:8px;
     font-size:12px;
-    background:#f2f4f8;
 }
 
 .stats-table td{
@@ -198,7 +196,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V21
+    Flow Survey Dashboard V22 Stable
 </div>
 
 <div id="dropZone">
@@ -228,30 +226,22 @@ canvas{
         <div class="left-panel">
 
             <div class="chart-box">
-                <div class="chart-title">
-                    Rainfall Intensity (mm/hr)
-                </div>
+                <div class="chart-title">Rainfall Intensity (mm/hr)</div>
                 <canvas id="rainChart" class="main-chart"></canvas>
             </div>
 
             <div class="chart-box">
-                <div class="chart-title">
-                    Depth (mm)
-                </div>
+                <div class="chart-title">Depth (mm)</div>
                 <canvas id="depthChart" class="main-chart"></canvas>
             </div>
 
             <div class="chart-box">
-                <div class="chart-title">
-                    Flow (l/s)
-                </div>
+                <div class="chart-title">Flow (l/s)</div>
                 <canvas id="flowChart" class="main-chart"></canvas>
             </div>
 
             <div class="chart-box">
-                <div class="chart-title">
-                    Velocity (m/s)
-                </div>
+                <div class="chart-title">Velocity (m/s)</div>
                 <canvas id="velocityChart" class="main-chart"></canvas>
             </div>
 
@@ -278,19 +268,13 @@ canvas{
                 </div>
 
                 <div class="control-group">
-
                     <label>Size of the Monitored Pipe</label>
-
                     <input id="pipeSize" readonly>
-
                 </div>
 
                 <div class="control-group">
-
                     <label>Select Rain Gauge</label>
-
                     <select id="rainSelect"></select>
-
                 </div>
 
             </div>
@@ -308,7 +292,7 @@ canvas{
             <div class="chart-box" id="scatterContainer">
 
                 <div class="chart-title red-title" id="scatterTitle">
-                    SCATTER GRAPH
+                    Scatter Graph
                 </div>
 
                 <canvas id="scatterChart" class="small-chart"></canvas>
@@ -336,11 +320,9 @@ canvas{
             <tbody>
 
                 <tr>
-
                     <td id="timeRange"></td>
                     <td id="totalRain"></td>
                     <td id="totalVolume"></td>
-
                 </tr>
 
             </tbody>
@@ -352,12 +334,10 @@ canvas{
             <thead>
 
                 <tr>
-
                     <th colspan="3">Rainfall</th>
                     <th colspan="2">Depth</th>
                     <th colspan="3">Flow</th>
                     <th colspan="2">Velocity</th>
-
                 </tr>
 
                 <tr>
@@ -422,17 +402,15 @@ let velocityChart;
 let cumulativeChart;
 let scatterChart;
 
-Chart.defaults.animation = false;
-
 function parseYYMMDDHHMM(str){
 
     const yy = parseInt(str.slice(0,2));
-    const mm = parseInt(str.slice(2,4)) - 1;
+    const mm = parseInt(str.slice(2,4))-1;
     const dd = parseInt(str.slice(4,6));
     const hh = parseInt(str.slice(6,8));
     const mi = parseInt(str.slice(8,10));
 
-    return new Date(2000 + yy, mm, dd, hh, mi);
+    return new Date(2000+yy,mm,dd,hh,mi);
 }
 
 function formatDate(date){
@@ -454,78 +432,21 @@ function formatDateTime(date){
         + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-function generateTimeline(start, interval, count){
+function generateTimeline(start,interval,count){
 
-    const arr = [];
+    const arr=[];
 
     for(let i=0;i<count;i++){
 
         arr.push(
             new Date(
                 start.getTime()
-                + i * interval * 60000
+                + i*interval*60000
             )
         );
     }
 
     return arr;
-}
-
-function commonXAxis(labels){
-
-    return {
-
-        ticks:{
-
-            maxTicksLimit:10,
-
-            callback:(value)=>
-                formatDate(labels[value]),
-
-            maxRotation:0,
-            minRotation:0
-        }
-    };
-}
-
-function cumulativeXAxis(labels){
-
-    return {
-
-        ticks:{
-
-            autoSkip:false,
-
-            callback:function(value,index){
-
-                const total =
-                    labels.length;
-
-                if(index === 0){
-
-                    return formatDate(labels[index]);
-                }
-
-                if(index === total - 1){
-
-                    return formatDate(labels[index]);
-                }
-
-                const interval =
-                    Math.floor(total / 4);
-
-                if(interval > 0 && index % interval === 0){
-
-                    return formatDate(labels[index]);
-                }
-
-                return '';
-            },
-
-            maxRotation:0,
-            minRotation:0
-        }
-    };
 }
 
 function parseFDV(text){
@@ -538,9 +459,7 @@ function parseFDV(text){
         .toUpperCase();
 
     const dateLine =
-        lines.find(l =>
-            /^\d{10}/.test(l.trim())
-        );
+        lines.find(l=>/^\d{10}/.test(l.trim()));
 
     const parts =
         dateLine.trim().split(/\s+/);
@@ -554,11 +473,11 @@ function parseFDV(text){
     let pipeSize='';
 
     const cstartIndex =
-        lines.findIndex(l =>
+        lines.findIndex(l=>
             l.toUpperCase().includes('CSTART')
         );
 
-    if(cstartIndex >= 0){
+    if(cstartIndex>=0){
 
         const nums =
             lines[cstartIndex+1]
@@ -572,7 +491,7 @@ function parseFDV(text){
     }
 
     const cendIndex =
-        lines.findIndex(l =>
+        lines.findIndex(l=>
             l.toUpperCase().includes('CEND')
         );
 
@@ -611,7 +530,8 @@ function parseFDV(text){
         velocity,
         pipeSize,
         interval,
-        type:identifier.substring(0,2)
+        type:
+            identifier.substring(0,2)
     };
 }
 
@@ -625,9 +545,7 @@ function parseRain(text){
         .toUpperCase();
 
     const dateLine =
-        lines.find(l =>
-            /^\d{10}/.test(l.trim())
-        );
+        lines.find(l=>/^\d{10}/.test(l.trim()));
 
     const parts =
         dateLine.trim().split(/\s+/);
@@ -639,7 +557,7 @@ function parseRain(text){
         parseInt(parts[2]);
 
     const cendIndex =
-        lines.findIndex(l =>
+        lines.findIndex(l=>
             l.toUpperCase().includes('CEND')
         );
 
@@ -663,6 +581,63 @@ function parseRain(text){
             ),
 
         intensity
+    };
+}
+
+function commonXAxis(labels){
+
+    return {
+
+        ticks:{
+
+            maxTicksLimit:10,
+
+            callback:(value)=>
+                formatDate(labels[value]),
+
+            maxRotation:0,
+            minRotation:0
+        }
+    };
+}
+
+function cumulativeXAxis(labels){
+
+    return {
+
+        ticks:{
+
+            autoSkip:false,
+
+            callback:function(value,index){
+
+                const total =
+                    labels.length;
+
+                if(index===0){
+
+                    return formatDate(labels[index]);
+                }
+
+                if(index===total-1){
+
+                    return formatDate(labels[index]);
+                }
+
+                const interval =
+                    Math.floor(total/4);
+
+                if(interval>0 && index%interval===0){
+
+                    return formatDate(labels[index]);
+                }
+
+                return '';
+            },
+
+            maxRotation:0,
+            minRotation:0
+        }
     };
 }
 
@@ -788,17 +763,15 @@ function initializeCharts(){
                     datasets:[{
                         data:[],
                         pointStyle:'crossRot',
-                        backgroundColor:'rgba(100,100,100,0.85)',
-                        borderColor:'rgba(100,100,100,0.85)',
-                        pointRadius:2,
-                        pointHoverRadius:2
+                        backgroundColor:'rgba(100,100,100,0.9)',
+                        borderColor:'rgba(100,100,100,0.9)',
+                        pointRadius:2
                     }]
                 },
 
                 options:{
                     responsive:true,
                     maintainAspectRatio:false,
-                    animation:false,
 
                     plugins:{
                         legend:{display:false}
@@ -811,6 +784,7 @@ function initializeCharts(){
                                 text:'Velocity (m/s)'
                             }
                         },
+
                         y:{
                             title:{
                                 display:true,
@@ -844,13 +818,14 @@ function renderDashboard(){
         monitor.pipeSize + ' mm';
 
     const rg =
-        rainGauges.find(r =>
-            r.identifier === rainId
+        rainGauges.find(r=>
+            r.identifier===rainId
         );
 
     const rainMap = new Map();
 
     rg.timestamps.forEach((t,i)=>{
+
         rainMap.set(
             t.getTime(),
             rg.intensity[i]
@@ -858,41 +833,34 @@ function renderDashboard(){
     });
 
     const alignedRain =
-        labels.map(t =>
+        labels.map(t=>
             rainMap.get(t.getTime()) || 0
         );
 
     rainChart.data.labels = labels;
     rainChart.data.datasets[0].data = alignedRain;
-    rainChart.options.scales.x =
-        commonXAxis(labels);
+    rainChart.options.scales.x = commonXAxis(labels);
     rainChart.update('none');
 
     depthChart.data.labels = labels;
     depthChart.data.datasets[0].data = monitor.depth;
-    depthChart.options.scales.x =
-        commonXAxis(labels);
+    depthChart.options.scales.x = commonXAxis(labels);
     depthChart.update('none');
 
     flowChart.data.labels = labels;
     flowChart.data.datasets[0].data = monitor.flow;
-    flowChart.options.scales.x =
-        commonXAxis(labels);
+    flowChart.options.scales.x = commonXAxis(labels);
     flowChart.update('none');
 
     velocityChart.data.labels = labels;
     velocityChart.data.datasets[0].data = monitor.velocity;
-    velocityChart.options.scales.x =
-        commonXAxis(labels);
+    velocityChart.options.scales.x = commonXAxis(labels);
     velocityChart.update('none');
 
     const palette = [
         '#1f77b4',
         '#2ca02c',
-        '#ff7f0e',
-        '#9467bd',
-        '#17becf',
-        '#8c564b'
+        '#ff7f0e'
     ];
 
     cumulativeChart.data.labels = labels;
@@ -900,13 +868,14 @@ function renderDashboard(){
     cumulativeChart.data.datasets =
         rainGauges.map((rg,i)=>{
 
-            let total = 0;
+            let total=0;
 
-            const cumulative = [];
+            const cumulative=[];
 
             const map = new Map();
 
             rg.timestamps.forEach((t,index)=>{
+
                 map.set(
                     t.getTime(),
                     rg.intensity[index]
@@ -919,13 +888,13 @@ function renderDashboard(){
                     map.get(t.getTime()) || 0;
 
                 total +=
-                    val * (monitor.interval / 60);
+                    val * (monitor.interval/60);
 
                 cumulative.push(total);
             });
 
             const selected =
-                rg.identifier === rainId;
+                rg.identifier===rainId;
 
             return {
 
@@ -953,13 +922,13 @@ function renderDashboard(){
 
     cumulativeChart.update('none');
 
-    if(monitor.type === 'DM'){
+    if(monitor.type==='DM'){
 
         document
             .getElementById('scatterContainer')
             .classList.add('greyed');
 
-        scatterChart.data.datasets[0].data = [];
+        scatterChart.data.datasets[0].data=[];
 
     }else{
 
@@ -970,7 +939,7 @@ function renderDashboard(){
         scatterChart.data.datasets[0].data =
             monitor.depth.map((d,i)=>({
                 x:monitor.velocity[i],
-                y:d / 1000
+                y:d/1000
             }));
     }
 
@@ -989,7 +958,7 @@ function renderDashboard(){
         ) / 1000;
 
     const velocityFiltered =
-        monitor.velocity.filter(v => v > 0);
+        monitor.velocity.filter(v=>v>0);
 
     document.getElementById('timeRange').innerText =
         `${formatDateTime(labels[0])} - ${formatDateTime(labels[labels.length-1])}`;
@@ -1040,13 +1009,13 @@ function renderDashboard(){
 
 async function handleFiles(files){
 
-    monitors.length = 0;
-    rainGauges.length = 0;
+    monitors.length=0;
+    rainGauges.length=0;
 
     const loadingText =
         document.getElementById('loadingText');
 
-    let processed = 0;
+    let processed=0;
 
     for(const file of files){
 
@@ -1108,19 +1077,19 @@ async function handleFiles(files){
 
     monitorSelect.onchange=()=>{
 
-        currentMonitorIndex=
+        currentMonitorIndex =
             parseInt(monitorSelect.value);
 
         renderDashboard();
     };
 
-    rainSelect.onchange=
+    rainSelect.onchange =
         renderDashboard;
 
     document.getElementById('prevBtn').onclick=()=>{
 
         currentMonitorIndex =
-            (currentMonitorIndex - 1 + monitors.length)
+            (currentMonitorIndex-1+monitors.length)
             % monitors.length;
 
         monitorSelect.value =
@@ -1132,7 +1101,7 @@ async function handleFiles(files){
     document.getElementById('nextBtn').onclick=()=>{
 
         currentMonitorIndex =
-            (currentMonitorIndex + 1)
+            (currentMonitorIndex+1)
             % monitors.length;
 
         monitorSelect.value =
@@ -1153,8 +1122,6 @@ async function handleFiles(files){
 
     renderDashboard();
 }
-
-// STABLE DRAG DROP
 
 const dropZone =
     document.getElementById('dropZone');
@@ -1177,10 +1144,9 @@ dropZone.addEventListener('drop',e=>{
 
     dropZone.classList.remove('dragover');
 
-    const files =
-        e.dataTransfer.files;
-
-    handleFiles(files);
+    handleFiles(
+        e.dataTransfer.files
+    );
 });
 
 </script>
