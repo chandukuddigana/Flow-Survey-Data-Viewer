@@ -1002,8 +1002,45 @@ function renderDashboard(){
             };
         });
 
-    cumulativeChart.options.scales.x =
-        commonXAxis(labels);
+    cumulativeChart.options.scales.x = {
+
+    ticks:{
+
+        autoSkip:false,
+
+        callback:function(value,index){
+
+            const total =
+                labels.length;
+
+            if(index === 0){
+
+                return formatDate(labels[index]);
+            }
+
+            if(index === total - 1){
+
+                return formatDate(labels[index]);
+            }
+
+            const interval =
+                Math.floor(total / 5);
+
+            if(
+                interval > 0 &&
+                index % interval === 0
+            ){
+
+                return formatDate(labels[index]);
+            }
+
+            return '';
+        },
+
+        maxRotation:0,
+        minRotation:0
+    }
+};
 
     cumulativeChart.update('none');
 
