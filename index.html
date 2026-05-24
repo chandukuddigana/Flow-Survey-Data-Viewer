@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V13</title>
+<title>Flow Survey Dashboard V14</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -195,7 +195,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V13
+    Flow Survey Dashboard V14
 </div>
 
 <div id="dropZone">
@@ -822,7 +822,50 @@ function initializeCharts(){
                     },
 
                     scales:{
-                        x:{},
+
+                        x:{
+
+                            ticks:{
+
+                                maxTicksLimit:5,
+
+                                callback:function(value,index,ticks){
+
+                                    const labels =
+                                        this.getLabels();
+
+                                    const total =
+                                        ticks.length;
+
+                                    if(index === 0){
+
+                                        return formatDate(
+                                            new Date(labels[index])
+                                        );
+                                    }
+
+                                    if(index === total - 1){
+
+                                        return formatDate(
+                                            new Date(labels[index])
+                                        );
+                                    }
+
+                                    const interval =
+                                        Math.ceil(total / 4);
+
+                                    if(index % interval === 0){
+
+                                        return formatDate(
+                                            new Date(labels[index])
+                                        );
+                                    }
+
+                                    return '';
+                                }
+                            }
+                        },
+
                         y:{
                             title:{
                                 display:true,
@@ -843,11 +886,11 @@ function initializeCharts(){
                 data:{
                     datasets:[{
                         data:[],
-                        pointStyle:'crossRot',
-                        backgroundColor:'rgba(80,80,80,0.8)',
-                        borderColor:'rgba(80,80,80,0.8)',
-                        pointRadius:2,
-                        pointHoverRadius:2
+                        pointStyle:'circle',
+                        backgroundColor:'rgba(180,0,0,0.7)',
+                        borderColor:'rgba(180,0,0,0.7)',
+                        pointRadius:1.6,
+                        pointHoverRadius:1.6
                     }]
                 },
 
@@ -889,398 +932,6 @@ function initializeCharts(){
             }
         );
 }
-
-function updateLineChart(chart, labels, data){
-
-    const ds =
-        downsample(labels, data);
-
-    chart.data.labels =
-        ds.labels;
-
-    chart.data.datasets[0].data =
-        ds.data;
-
-    chart.options.scales.x =
-        commonXAxis(ds.labels);
-
-    chart.update('none');
-}
-
-function renderDashboard(){
-
-    const monitor =
-        monitors[currentMonitorIndex];
-
-    const rainId =
-        document.getElementById('rainSelect').value;
-
-    const rainData =
-        monitor.rainCache[rainId];
-
-    const labels =
-        monitor.timestamps;
-
-    document.getElementById('monitorTitle').innerText =
-        monitor.identifier;
-
-    document.getElementById('scatterTitle').innerHTML =
-        `SCATTER GRAPH - ${monitor.identifier}`;
-
-    document.getElementById('pipeSize').value =
-        monitor.pipeSize + 'mm';
-
-    updateLineChart(
-        rainChart,
-        labels,
-        rainData.aligned
-    );
-
-    updateLineChart(
-        depthChart,
-        labels,
-        monitor.depth
-    );
-
-    updateLineChart(
-        flowChart,
-        labels,
-        monitor.flow
-    );
-
-    updateLineChart(
-        velocityChart,
-        labels,
-        monitor.velocity
-    );
-
-    cumulativeChart.data.labels =
-        labels;
-
-    const palette = [
-
-        '#1f77b4',
-        '#2ca02c',
-        '#ff7f0e',
-        '#9467bd',
-        '#17becf',
-        '#8c564b',
-        '#e377c2',
-        '#7f7f7f'
-    ];
-
-    cumulativeChart.data.datasets =
-        rainGauges.map((rg,i)=>{
-
-            const rgData =
-                monitor.rainCache[rg.identifier];
-
-            const selected =
-                rg.identifier === rainId;
-
-            return {
-
-                label:
-                    `${rg.identifier} (${rgData.stats.totalRain.toFixed(1)} mm)`,
-
-                data:[...rgData.cumulative],
-
-                borderColor:
-                    palette[i % palette.length],
-
-                backgroundColor:
-                    palette[i % palette.length],
-
-                borderWidth:
-                    selected ? 2.6 : 1.2,
-
-                pointRadius:0,
-
-                tension:0,
-
-                fill:false
-            };
-        });
-
-    cumulativeChart.options.scales.x =
-        commonXAxis(labels);
-
-    cumulativeChart.update('none');
-
-    const scatterContainer =
-        document.getElementById('scatterContainer');
-
-    if(monitor.type === 'DM'){
-
-        scatterContainer.classList.add('greyed');
-
-        scatterChart.data.datasets[0].data = [];
-
-    }else{
-
-        scatterContainer.classList.remove('greyed');
-
-        const scatterData = [];
-
-        const factor =
-            Math.max(
-                1,
-                Math.ceil(monitor.depth.length / 15000)
-            );
-
-        for(let i=0;i<monitor.depth.length;i+=factor){
-
-            scatterData.push({
-
-                x:monitor.velocity[i],
-
-                y:monitor.depth[i] / 1000
-            });
-        }
-
-        scatterChart.data.datasets[0].data =
-            scatterData;
-
-        const maxVel =
-            Math.max(...monitor.velocity);
-
-        const maxDepth =
-            Math.max(...monitor.depth) / 1000;
-
-        scatterChart.options.scales.x.max =
-            Math.ceil(maxVel * 2) / 2;
-
-        scatterChart.options.scales.y.max =
-            Math.ceil(maxDepth / 0.05) * 0.05;
-
-        scatterChart.options.scales.x.ticks.stepSize =
-            maxVel <= 1 ? 0.2 : 0.5;
-
-        scatterChart.options.scales.y.ticks.stepSize =
-            maxDepth <= 0.2 ? 0.02 : 0.05;
-    }
-
-    scatterChart.update('none');
-
-    const totalVolume =
-        monitor.flow.reduce((a,b)=>
-            a + b * (monitor.interval * 60),
-            0
-        ) / 1000;
-
-    let validVelocity =
-        monitor.velocity.filter(v => v > 0);
-
-    if(validVelocity.length === 0){
-
-        validVelocity = [0];
-    }
-
-    document.getElementById('timeRange').innerText =
-        `${formatDateTime(monitor.start)} - ${formatDateTime(monitor.end)}`;
-
-    document.getElementById('totalRain').innerText =
-        rainData.stats.totalRain.toFixed(2);
-
-    document.getElementById('totalVolume').innerText =
-        totalVolume.toFixed(3);
-
-    document.getElementById('rainDepth').innerText =
-        rainData.stats.totalRain.toFixed(3);
-
-    document.getElementById('rainPeak').innerText =
-        rainData.stats.maxRain.toFixed(3);
-
-    document.getElementById('rainAverage').innerText =
-        rainData.stats.avgRain.toFixed(3);
-
-    document.getElementById('depthMin').innerText =
-        Math.min(...monitor.depth).toFixed(3);
-
-    document.getElementById('depthMax').innerText =
-        Math.max(...monitor.depth).toFixed(3);
-
-    document.getElementById('flowMin').innerText =
-        Math.min(...monitor.flow).toFixed(3);
-
-    document.getElementById('flowMax').innerText =
-        Math.max(...monitor.flow).toFixed(3);
-
-    document.getElementById('flowVolume').innerText =
-        totalVolume.toFixed(3);
-
-    document.getElementById('velocityMin').innerText =
-        Math.min(...validVelocity).toFixed(3);
-
-    document.getElementById('velocityMax').innerText =
-        Math.max(...monitor.velocity).toFixed(3);
-}
-
-async function handleFiles(files){
-
-    const loadingText =
-        document.getElementById('loadingText');
-
-    loadingText.innerHTML =
-        'Processing files...';
-
-    monitors.length = 0;
-    rainGauges.length = 0;
-
-    let processed = 0;
-
-    for(const file of files){
-
-        const text =
-            await file.text();
-
-        if(file.name.toLowerCase().endsWith('.fdv')){
-
-            monitors.push(
-                parseFDV(text)
-            );
-        }
-
-        if(file.name.toLowerCase().endsWith('.r')){
-
-            rainGauges.push(
-                parseRain(text)
-            );
-        }
-
-        processed++;
-
-        loadingText.innerHTML =
-            `Processing ${processed} / ${files.length} files`;
-    }
-
-    loadingText.innerHTML =
-        'Optimizing telemetry...';
-
-    monitors.sort((a,b)=>
-        a.identifier.localeCompare(b.identifier)
-    );
-
-    rainGauges.sort((a,b)=>
-        a.identifier.localeCompare(b.identifier)
-    );
-
-    precomputeRainAlignment();
-
-    const monitorSelect =
-        document.getElementById('monitorSelect');
-
-    const rainSelect =
-        document.getElementById('rainSelect');
-
-    monitorSelect.innerHTML='';
-    rainSelect.innerHTML='';
-
-    monitors.forEach((m,i)=>{
-
-        const op =
-            document.createElement('option');
-
-        op.value = i;
-        op.textContent = m.identifier;
-
-        monitorSelect.appendChild(op);
-    });
-
-    rainGauges.forEach(r=>{
-
-        const op =
-            document.createElement('option');
-
-        op.value = r.identifier;
-        op.textContent = r.identifier;
-
-        rainSelect.appendChild(op);
-    });
-
-    initializeCharts();
-
-    document.getElementById('dropZone').style.display='none';
-
-    document.getElementById('app').style.display='block';
-
-    monitorSelect.onchange = ()=>{
-
-        currentMonitorIndex =
-            parseInt(monitorSelect.value);
-
-        renderDashboard();
-    };
-
-    rainSelect.onchange =
-        renderDashboard;
-
-    document.getElementById('leftMonitorBtn').onclick = ()=>{
-
-        currentMonitorIndex =
-            (currentMonitorIndex - 1 + monitors.length)
-            % monitors.length;
-
-        monitorSelect.value =
-            currentMonitorIndex;
-
-        renderDashboard();
-    };
-
-    document.getElementById('rightMonitorBtn').onclick = ()=>{
-
-        currentMonitorIndex =
-            (currentMonitorIndex + 1)
-            % monitors.length;
-
-        monitorSelect.value =
-            currentMonitorIndex;
-
-        renderDashboard();
-    };
-
-    document.getElementById('prevBtn').onclick =
-        document.getElementById('leftMonitorBtn').onclick;
-
-    document.getElementById('nextBtn').onclick =
-        document.getElementById('rightMonitorBtn').onclick;
-
-    renderDashboard();
-}
-
-const dropZone =
-    document.getElementById('dropZone');
-
-window.addEventListener('dragover', e=>{
-    e.preventDefault();
-});
-
-window.addEventListener('drop', e=>{
-    e.preventDefault();
-});
-
-dropZone.addEventListener('dragover', e=>{
-
-    e.preventDefault();
-
-    dropZone.classList.add('dragover');
-});
-
-dropZone.addEventListener('dragleave', ()=>{
-
-    dropZone.classList.remove('dragover');
-});
-
-dropZone.addEventListener('drop', e=>{
-
-    e.preventDefault();
-
-    dropZone.classList.remove('dragover');
-
-    handleFiles(
-        e.dataTransfer.files
-    );
-});
 
 </script>
 
