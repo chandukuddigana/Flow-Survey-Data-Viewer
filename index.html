@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V9</title>
+<title>Flow Survey Dashboard V10</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -195,7 +195,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V9
+    Flow Survey Dashboard V10
 </div>
 
 <div id="dropZone">
@@ -844,8 +844,11 @@ function initializeCharts(){
                 data:{
                     datasets:[{
                         data:[],
-                        backgroundColor:'rgba(255,0,0,0.85)',
-                        pointRadius:1
+                        pointStyle:'crossRot',
+                        backgroundColor:'rgba(80,80,80,0.8)',
+                        borderColor:'rgba(80,80,80,0.8)',
+                        pointRadius:2,
+                        pointHoverRadius:2
                     }]
                 },
 
@@ -866,10 +869,10 @@ function initializeCharts(){
                                 display:true,
                                 text:'Velocity (m/s)'
                             },
-                            ticks:{
-                                stepSize:0.5
-                            },
-                            min:0
+                            min:0,
+                            grid:{
+                                color:'rgba(0,0,0,0.08)'
+                            }
                         },
 
                         y:{
@@ -877,10 +880,10 @@ function initializeCharts(){
                                 display:true,
                                 text:'Depth (m)'
                             },
-                            ticks:{
-                                stepSize:0.04
-                            },
-                            min:0
+                            min:0,
+                            grid:{
+                                color:'rgba(0,0,0,0.08)'
+                            }
                         }
                     }
                 }
@@ -1011,7 +1014,7 @@ function renderDashboard(){
         const factor =
             Math.max(
                 1,
-                Math.ceil(monitor.depth.length / 8000)
+                Math.ceil(monitor.depth.length / 15000)
             );
 
         for(let i=0;i<monitor.depth.length;i+=factor){
@@ -1026,6 +1029,24 @@ function renderDashboard(){
 
         scatterChart.data.datasets[0].data =
             scatterData;
+
+        const maxVel =
+            Math.max(...monitor.velocity);
+
+        const maxDepth =
+            Math.max(...monitor.depth) / 1000;
+
+        scatterChart.options.scales.x.max =
+            Math.ceil(maxVel * 2) / 2;
+
+        scatterChart.options.scales.y.max =
+            Math.ceil(maxDepth / 0.05) * 0.05;
+
+        scatterChart.options.scales.x.ticks.stepSize =
+            maxVel <= 1 ? 0.2 : 0.5;
+
+        scatterChart.options.scales.y.ticks.stepSize =
+            maxDepth <= 0.2 ? 0.02 : 0.05;
     }
 
     scatterChart.update('none');
