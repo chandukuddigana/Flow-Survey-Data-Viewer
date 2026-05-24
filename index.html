@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V3</title>
+<title>Flow Survey Dashboard V4 - Optimized</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -69,7 +69,7 @@ body{
 
 .dashboard-layout{
     display:grid;
-    grid-template-columns: 5fr 1fr;
+    grid-template-columns:5fr 1fr;
     gap:20px;
     padding:10px 20px 20px;
 }
@@ -77,28 +77,28 @@ body{
 .left-panel{
     display:flex;
     flex-direction:column;
-    gap:14px;
+    gap:12px;
 }
 
 .right-panel{
     display:flex;
     flex-direction:column;
-    gap:14px;
+    gap:12px;
 }
 
 .chart-box{
     background:white;
+    border:1px solid #d7d7d7;
     border-radius:6px;
-    border:1px solid #d8d8d8;
     padding:8px;
 }
 
 .chart-title{
-    font-size:12px;
+    font-size:11px;
     font-weight:bold;
-    color:#003399;
-    margin-bottom:6px;
+    margin-bottom:5px;
     text-transform:uppercase;
+    color:#002d72;
 }
 
 .green-title{
@@ -111,7 +111,7 @@ body{
 
 .controls-box{
     background:white;
-    border:1px solid #d8d8d8;
+    border:1px solid #d7d7d7;
     border-radius:6px;
     padding:12px;
 }
@@ -128,6 +128,11 @@ body{
     text-transform:uppercase;
 }
 
+.monitor-select-row{
+    display:flex;
+    gap:6px;
+}
+
 select,
 input{
     width:100%;
@@ -135,15 +140,8 @@ input{
     box-sizing:border-box;
 }
 
-.monitor-select-row{
-    display:flex;
-    gap:6px;
-    align-items:center;
-}
-
 .monitor-arrow{
     width:28px;
-    height:28px;
     cursor:pointer;
 }
 
@@ -184,7 +182,7 @@ canvas{
 }
 
 .greyed{
-    opacity:0.35;
+    opacity:0.3;
 }
 
 </style>
@@ -194,7 +192,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V3
+    Flow Survey Dashboard V4
 </div>
 
 <div id="dropZone">
@@ -207,7 +205,7 @@ canvas{
 
         <button class="nav-btn" id="prevBtn">◀</button>
 
-        <div id="monitorTitle">FM001</div>
+        <div id="monitorTitle"></div>
 
         <button class="nav-btn" id="nextBtn">▶</button>
 
@@ -215,11 +213,9 @@ canvas{
 
     <div class="dashboard-layout">
 
-        <!-- LEFT PANEL -->
+        <!-- LEFT -->
 
         <div class="left-panel">
-
-            <!-- RAIN -->
 
             <div class="chart-box">
 
@@ -231,8 +227,6 @@ canvas{
 
             </div>
 
-            <!-- DEPTH -->
-
             <div class="chart-box">
 
                 <div class="chart-title green-title">
@@ -243,8 +237,6 @@ canvas{
 
             </div>
 
-            <!-- FLOW -->
-
             <div class="chart-box">
 
                 <div class="chart-title green-title">
@@ -254,8 +246,6 @@ canvas{
                 <canvas id="flowChart" class="main-chart"></canvas>
 
             </div>
-
-            <!-- VELOCITY -->
 
             <div class="chart-box">
 
@@ -269,11 +259,9 @@ canvas{
 
         </div>
 
-        <!-- RIGHT PANEL -->
+        <!-- RIGHT -->
 
         <div class="right-panel">
-
-            <!-- CONTROLS -->
 
             <div class="controls-box">
 
@@ -311,8 +299,6 @@ canvas{
 
             </div>
 
-            <!-- CUMULATIVE -->
-
             <div class="chart-box">
 
                 <div class="chart-title">
@@ -322,8 +308,6 @@ canvas{
                 <canvas id="cumulativeChart" class="small-chart"></canvas>
 
             </div>
-
-            <!-- SCATTER -->
 
             <div class="chart-box" id="scatterContainer">
 
@@ -438,6 +422,13 @@ let cumulativeChart;
 let scatterChart;
 
 // =====================================================
+// PERFORMANCE CONFIG
+// =====================================================
+
+Chart.defaults.animation = false;
+Chart.defaults.responsive = true;
+
+// =====================================================
 // DATE PARSER
 // =====================================================
 
@@ -470,16 +461,58 @@ function formatDate(date){
 
 function generateTimeline(start, interval, count){
 
-    const arr = [];
+    const arr = new Array(count);
 
     for(let i=0;i<count;i++){
 
-        arr.push(
-            new Date(start.getTime() + i * interval * 60000)
-        );
+        arr[i] =
+            new Date(start.getTime() + i * interval * 60000);
     }
 
     return arr;
+}
+
+// =====================================================
+// DATA DOWNSAMPLING
+// Huge performance improvement
+// =====================================================
+
+function downsample(data, maxPoints=1500){
+
+    if(data.length <= maxPoints) return data;
+
+    const factor =
+        Math.ceil(data.length / maxPoints);
+
+    const result = [];
+
+    for(let i=0;i<data.length;i+=factor){
+
+        result.push(data[i]);
+    }
+
+    return result;
+}
+
+// =====================================================
+// LABEL DOWNSAMPLING
+// =====================================================
+
+function downsampleLabels(labels, maxPoints=1500){
+
+    if(labels.length <= maxPoints) return labels;
+
+    const factor =
+        Math.ceil(labels.length / maxPoints);
+
+    const result = [];
+
+    for(let i=0;i<labels.length;i+=factor){
+
+        result.push(labels[i]);
+    }
+
+    return result;
 }
 
 // =====================================================
@@ -488,16 +521,17 @@ function generateTimeline(start, interval, count){
 
 function parseFDV(text){
 
-    const lines = text.split(/\r?\n/);
-
-    const identifierMatch =
-        text.match(/\b(FM|DM|RM)\d+\b/i);
+    const lines =
+        text.split(/\r?\n/);
 
     const identifier =
-        identifierMatch[0].toUpperCase();
+        text.match(/\b(FM|DM|RM)\d+\b/i)[0]
+        .toUpperCase();
 
     const dateLine =
-        lines.find(l => /^\d{10}/.test(l.trim()));
+        lines.find(l =>
+            /^\d{10}/.test(l.trim())
+        );
 
     const parts =
         dateLine.trim().split(/\s+/);
@@ -510,6 +544,8 @@ function parseFDV(text){
 
     const interval =
         parseInt(parts[2]);
+
+    // PIPE SIZE
 
     let pipeSize = '';
 
@@ -533,6 +569,8 @@ function parseFDV(text){
         }
     }
 
+    // DATA
+
     const cendIndex =
         lines.findIndex(l =>
             l.toUpperCase().includes('CEND')
@@ -544,8 +582,7 @@ function parseFDV(text){
         .join(' ')
         .trim()
         .split(/\s+/)
-        .map(Number)
-        .filter(v => !isNaN(v));
+        .map(Number);
 
     const flow = [];
     const depth = [];
@@ -565,22 +602,59 @@ function parseFDV(text){
             depth.length
         );
 
-    let type = 'FM';
+    // =================================================
+    // CACHE PRECOMPUTED STATS
+    // =================================================
+
+    function avg(arr){
+
+        return (
+            arr.reduce((a,b)=>a+b,0) /
+            arr.length
+        );
+    }
+
+    const totalVolume =
+        flow.reduce((a,b)=>
+            a + b * (interval * 60),0
+        ) / 1000;
+
+    let type='FM';
 
     if(identifier.startsWith('DM')) type='DM';
     if(identifier.startsWith('RM')) type='RM';
 
     return {
+
         identifier,
         type,
         start,
         end,
         interval,
         pipeSize,
+
         timestamps,
+
         flow,
         depth,
-        velocity
+        velocity,
+
+        stats:{
+
+            minFlow:Math.min(...flow),
+            avgFlow:avg(flow),
+            maxFlow:Math.max(...flow),
+
+            minDepth:Math.min(...depth),
+            avgDepth:avg(depth),
+            maxDepth:Math.max(...depth),
+
+            minVelocity:Math.min(...velocity),
+            avgVelocity:avg(velocity),
+            maxVelocity:Math.max(...velocity),
+
+            totalVolume
+        }
     };
 }
 
@@ -590,16 +664,17 @@ function parseFDV(text){
 
 function parseRain(text){
 
-    const lines = text.split(/\r?\n/);
-
-    const identifierMatch =
-        text.match(/\bRG\d+\b/i);
+    const lines =
+        text.split(/\r?\n/);
 
     const identifier =
-        identifierMatch[0].toUpperCase();
+        text.match(/\bRG\d+\b/i)[0]
+        .toUpperCase();
 
     const dateLine =
-        lines.find(l => /^\d{10}/.test(l.trim()));
+        lines.find(l =>
+            /^\d{10}/.test(l.trim())
+        );
 
     const parts =
         dateLine.trim().split(/\s+/);
@@ -624,8 +699,7 @@ function parseRain(text){
         .join(' ')
         .trim()
         .split(/\s+/)
-        .map(Number)
-        .filter(v => !isNaN(v));
+        .map(Number);
 
     const timestamps =
         generateTimeline(
@@ -645,55 +719,70 @@ function parseRain(text){
 }
 
 // =====================================================
-// RAIN ALIGNMENT
+// RAIN ALIGNMENT CACHE
 // =====================================================
 
-function synchronizeRain(monitor, rain){
+function precomputeRainAlignment(){
 
-    const map = new Map();
+    monitors.forEach(monitor=>{
 
-    rain.timestamps.forEach((t,i)=>{
+        monitor.rainCache = {};
 
-        map.set(
-            t.getTime(),
-            rain.intensity[i]
-        );
+        rainGauges.forEach(rg=>{
+
+            const map = new Map();
+
+            rg.timestamps.forEach((t,i)=>{
+
+                map.set(
+                    t.getTime(),
+                    rg.intensity[i]
+                );
+            });
+
+            const aligned =
+                monitor.timestamps.map(t=>
+                    map.get(t.getTime()) || 0
+                );
+
+            // cumulative
+
+            let total = 0;
+
+            const cumulative = [];
+
+            aligned.forEach(v=>{
+
+                total +=
+                    v * (monitor.interval / 60);
+
+                cumulative.push(total);
+            });
+
+            monitor.rainCache[rg.identifier] = {
+
+                aligned,
+                cumulative,
+
+                stats:{
+
+                    minRain:Math.min(...aligned),
+
+                    avgRain:
+                        aligned.reduce((a,b)=>a+b,0)
+                        / aligned.length,
+
+                    maxRain:Math.max(...aligned),
+
+                    totalRain:total
+                }
+            };
+        });
     });
-
-    const aligned = [];
-
-    monitor.timestamps.forEach(t=>{
-
-        aligned.push(
-            map.get(t.getTime()) || 0
-        );
-    });
-
-    return aligned;
 }
 
 // =====================================================
-// CUMULATIVE RAIN
-// =====================================================
-
-function cumulativeRain(intensity, interval){
-
-    let total = 0;
-
-    const arr = [];
-
-    intensity.forEach(v=>{
-
-        total += v * (interval/60);
-
-        arr.push(total);
-    });
-
-    return arr;
-}
-
-// =====================================================
-// CHART OPTIONS
+// COMMON AXIS
 // =====================================================
 
 function commonXAxis(labels){
@@ -701,6 +790,7 @@ function commonXAxis(labels){
     return {
 
         ticks:{
+
             maxTicksLimit:10,
 
             callback:(value)=>
@@ -714,10 +804,10 @@ function commonXAxis(labels){
 }
 
 // =====================================================
-// CHART CREATOR
+// HIGH PERFORMANCE CHART
 // =====================================================
 
-function createLineChart(canvasId, labels, data, color, yTitle, reverse=false){
+function createChart(canvasId, color, yTitle, reverse=false){
 
     return new Chart(
         document.getElementById(canvasId),
@@ -725,18 +815,12 @@ function createLineChart(canvasId, labels, data, color, yTitle, reverse=false){
             type:'line',
 
             data:{
-                labels,
-
+                labels:[],
                 datasets:[{
-
-                    data,
-
+                    data:[],
                     borderColor:color,
-
                     borderWidth:1.2,
-
                     pointRadius:0,
-
                     tension:0
                 }]
             },
@@ -744,16 +828,25 @@ function createLineChart(canvasId, labels, data, color, yTitle, reverse=false){
             options:{
 
                 responsive:true,
-
                 maintainAspectRatio:false,
+                animation:false,
+
+                parsing:false,
+                normalized:true,
 
                 plugins:{
-                    legend:{display:false}
+
+                    legend:{display:false},
+
+                    decimation:{
+                        enabled:true,
+                        algorithm:'min-max'
+                    }
                 },
 
                 scales:{
 
-                    x: commonXAxis(labels),
+                    x:{},
 
                     y:{
                         reverse,
@@ -770,91 +863,40 @@ function createLineChart(canvasId, labels, data, color, yTitle, reverse=false){
 }
 
 // =====================================================
-// DASHBOARD RENDER
+// INITIALIZE CHARTS ONLY ONCE
+// Massive performance gain
 // =====================================================
 
-function renderDashboard(){
-
-    const monitor =
-        monitors[currentMonitorIndex];
-
-    const rain =
-        rainGauges.find(r =>
-            r.identifier ===
-            document.getElementById('rainSelect').value
-        );
-
-    const rainAligned =
-        synchronizeRain(monitor, rain);
-
-    const labels =
-        monitor.timestamps;
-
-    document.getElementById('monitorTitle').innerText =
-        monitor.identifier;
-
-    document.getElementById('pipeSize').value =
-        monitor.pipeSize + 'mm';
-
-    if(rainChart) rainChart.destroy();
-    if(depthChart) depthChart.destroy();
-    if(flowChart) flowChart.destroy();
-    if(velocityChart) velocityChart.destroy();
-
-    // RAIN
+function initializeCharts(){
 
     rainChart =
-        createLineChart(
+        createChart(
             'rainChart',
-            labels,
-            rainAligned,
             '#002b7f',
             'Rainfall Intensity (mm/hr)',
             true
         );
 
-    // DEPTH
-
     depthChart =
-        createLineChart(
+        createChart(
             'depthChart',
-            labels,
-            monitor.depth,
             '#00b050',
             'Depth (mm)'
         );
 
-    // FLOW
-
     flowChart =
-        createLineChart(
+        createChart(
             'flowChart',
-            labels,
-            monitor.flow,
             '#00b050',
             'Flow (l/s)'
         );
 
-    // VELOCITY
-
     velocityChart =
-        createLineChart(
+        createChart(
             'velocityChart',
-            labels,
-            monitor.velocity,
             '#00b050',
             'Velocity (m/s)'
         );
-
-    // CUMULATIVE
-
-    if(cumulativeChart) cumulativeChart.destroy();
-
-    const colors = [
-        '#003399',
-        '#00acc1',
-        '#2962ff'
-    ];
 
     cumulativeChart =
         new Chart(
@@ -863,45 +905,26 @@ function renderDashboard(){
                 type:'line',
 
                 data:{
-
-                    labels,
-
-                    datasets:
-                        rainGauges.map((rg,i)=>{
-
-                        const aligned =
-                            synchronizeRain(monitor, rg);
-
-                        const cum =
-                            cumulativeRain(
-                                aligned,
-                                monitor.interval
-                            );
-
-                        return {
-
-                            label:
-                                `${rg.identifier} (${cum[cum.length-1].toFixed(1)} mm)`,
-
-                            data:cum,
-
-                            borderColor:
-                                colors[i % colors.length],
-
-                            borderWidth:2,
-
-                            pointRadius:0
-                        };
-                    })
+                    labels:[],
+                    datasets:[]
                 },
 
                 options:{
 
                     responsive:true,
-
                     maintainAspectRatio:false,
+                    animation:false,
+
+                    parsing:false,
+                    normalized:true,
 
                     plugins:{
+
+                        decimation:{
+                            enabled:true,
+                            algorithm:'min-max'
+                        },
+
                         legend:{
                             position:'top',
                             labels:{
@@ -913,7 +936,7 @@ function renderDashboard(){
 
                     scales:{
 
-                        x: commonXAxis(labels),
+                        x:{},
 
                         y:{
                             title:{
@@ -926,17 +949,6 @@ function renderDashboard(){
             }
         );
 
-    // SCATTER
-
-    const scatterDisabled =
-        monitor.type !== 'FM';
-
-    document.getElementById('scatterContainer')
-        .classList
-        .toggle('greyed', scatterDisabled);
-
-    if(scatterChart) scatterChart.destroy();
-
     scatterChart =
         new Chart(
             document.getElementById('scatterChart'),
@@ -945,24 +957,20 @@ function renderDashboard(){
 
                 data:{
                     datasets:[{
-
-                        data:
-                            monitor.depth.map((d,i)=>({
-                                x:monitor.velocity[i],
-                                y:d
-                            })),
-
-                        pointRadius:2,
-
-                        backgroundColor:'#ff4d4d'
+                        data:[],
+                        backgroundColor:'#ff4d4d',
+                        pointRadius:2
                     }]
                 },
 
                 options:{
 
                     responsive:true,
-
                     maintainAspectRatio:false,
+                    animation:false,
+
+                    parsing:false,
+                    normalized:true,
 
                     plugins:{
                         legend:{display:false}
@@ -987,73 +995,205 @@ function renderDashboard(){
                 }
             }
         );
+}
 
+// =====================================================
+// UPDATE CHART ONLY
+// NO DESTROY/RECREATE
+// HUGE SPEED BOOST
+// =====================================================
+
+function updateLineChart(chart, labels, data){
+
+    const dsLabels =
+        downsampleLabels(labels);
+
+    const dsData =
+        downsample(data);
+
+    chart.data.labels =
+        dsLabels;
+
+    chart.data.datasets[0].data =
+        dsData;
+
+    chart.options.scales.x =
+        commonXAxis(dsLabels);
+
+    chart.update('none');
+}
+
+// =====================================================
+// DASHBOARD RENDER
+// =====================================================
+
+function renderDashboard(){
+
+    const monitor =
+        monitors[currentMonitorIndex];
+
+    const rainId =
+        document.getElementById('rainSelect').value;
+
+    const rainData =
+        monitor.rainCache[rainId];
+
+    const labels =
+        monitor.timestamps;
+
+    // HEADER
+
+    document.getElementById('monitorTitle').innerText =
+        monitor.identifier;
+
+    document.getElementById('pipeSize').value =
+        monitor.pipeSize + 'mm';
+
+    // =================================================
+    // UPDATE CHARTS
+    // =================================================
+
+    updateLineChart(
+        rainChart,
+        labels,
+        rainData.aligned
+    );
+
+    updateLineChart(
+        depthChart,
+        labels,
+        monitor.depth
+    );
+
+    updateLineChart(
+        flowChart,
+        labels,
+        monitor.flow
+    );
+
+    updateLineChart(
+        velocityChart,
+        labels,
+        monitor.velocity
+    );
+
+    // =================================================
+    // CUMULATIVE
+    // =================================================
+
+    const colors = [
+        '#003399',
+        '#00acc1',
+        '#2962ff'
+    ];
+
+    cumulativeChart.data.labels =
+        downsampleLabels(labels);
+
+    cumulativeChart.data.datasets =
+        rainGauges.map((rg,i)=>{
+
+            const rgData =
+                monitor.rainCache[rg.identifier];
+
+            return {
+
+                label:
+                    `${rg.identifier} (${rgData.stats.totalRain.toFixed(1)} mm)`,
+
+                data:
+                    downsample(
+                        rgData.cumulative
+                    ),
+
+                borderColor:
+                    colors[i % colors.length],
+
+                pointRadius:0,
+
+                borderWidth:2
+            };
+        });
+
+    cumulativeChart.options.scales.x =
+        commonXAxis(
+            downsampleLabels(labels)
+        );
+
+    cumulativeChart.update('none');
+
+    // =================================================
+    // SCATTER
+    // =================================================
+
+    const scatterDisabled =
+        monitor.type !== 'FM';
+
+    document.getElementById('scatterContainer')
+        .classList
+        .toggle('greyed', scatterDisabled);
+
+    scatterChart.data.datasets[0].data =
+        downsample(
+            monitor.depth.map((d,i)=>({
+
+                x:monitor.velocity[i],
+
+                y:d
+            })),
+            2000
+        );
+
+    scatterChart.update('none');
+
+    // =================================================
     // STATS
-
-    const totalRain =
-        cumulativeRain(
-            rainAligned,
-            monitor.interval
-        ).slice(-1)[0] || 0;
-
-    const totalVolume =
-        monitor.flow.reduce((a,b)=>
-            a + b * (monitor.interval * 60),
-            0
-        ) / 1000;
+    // =================================================
 
     document.getElementById('timeRange').innerText =
         `${monitor.start.toLocaleString()} - ${monitor.end.toLocaleString()}`;
 
     document.getElementById('totalRain').innerText =
-        totalRain.toFixed(2);
+        rainData.stats.totalRain.toFixed(2);
 
     document.getElementById('totalVolume').innerText =
-        totalVolume.toFixed(3);
-
-    function avg(arr){
-
-        return (
-            arr.reduce((a,b)=>a+b,0) /
-            arr.length
-        );
-    }
+        monitor.stats.totalVolume.toFixed(3);
 
     document.getElementById('minRain').innerText =
-        Math.min(...rainAligned).toFixed(1);
+        rainData.stats.minRain.toFixed(1);
 
     document.getElementById('avgRain').innerText =
-        avg(rainAligned).toFixed(2);
+        rainData.stats.avgRain.toFixed(2);
 
     document.getElementById('maxRain').innerText =
-        Math.max(...rainAligned).toFixed(1);
+        rainData.stats.maxRain.toFixed(1);
 
     document.getElementById('minDepth').innerText =
-        Math.min(...monitor.depth).toFixed(2);
+        monitor.stats.minDepth.toFixed(2);
 
     document.getElementById('avgDepth').innerText =
-        avg(monitor.depth).toFixed(3);
+        monitor.stats.avgDepth.toFixed(2);
 
     document.getElementById('maxDepth').innerText =
-        Math.max(...monitor.depth).toFixed(2);
+        monitor.stats.maxDepth.toFixed(2);
 
     document.getElementById('minFlow').innerText =
-        Math.min(...monitor.flow).toFixed(3);
+        monitor.stats.minFlow.toFixed(3);
 
     document.getElementById('avgFlow').innerText =
-        avg(monitor.flow).toFixed(3);
+        monitor.stats.avgFlow.toFixed(3);
 
     document.getElementById('maxFlow').innerText =
-        Math.max(...monitor.flow).toFixed(3);
+        monitor.stats.maxFlow.toFixed(3);
 
     document.getElementById('minVelocity').innerText =
-        Math.min(...monitor.velocity).toFixed(2);
+        monitor.stats.minVelocity.toFixed(2);
 
     document.getElementById('avgVelocity').innerText =
-        avg(monitor.velocity).toFixed(2);
+        monitor.stats.avgVelocity.toFixed(2);
 
     document.getElementById('maxVelocity').innerText =
-        Math.max(...monitor.velocity).toFixed(2);
+        monitor.stats.maxVelocity.toFixed(2);
 }
 
 // =====================================================
@@ -1106,6 +1246,20 @@ async function handleFiles(files){
             a.identifier.localeCompare(b.identifier)
         );
 
+        // =================================================
+        // PRECOMPUTE ALL RAIN ALIGNMENTS
+        // Huge performance gain
+        // =================================================
+
+        dropZone.innerHTML =
+            `<h2>Optimizing Telemetry...</h2>`;
+
+        precomputeRainAlignment();
+
+        // =================================================
+        // POPULATE DROPDOWNS
+        // =================================================
+
         const monitorSelect =
             document.getElementById('monitorSelect');
 
@@ -1137,9 +1291,23 @@ async function handleFiles(files){
             rainSelect.appendChild(op);
         });
 
+        // =================================================
+        // INITIALIZE CHARTS ONCE
+        // =================================================
+
+        initializeCharts();
+
+        // =================================================
+        // SHOW APP
+        // =================================================
+
         document.getElementById('dropZone').style.display='none';
 
         document.getElementById('app').style.display='block';
+
+        // =================================================
+        // EVENTS
+        // =================================================
 
         monitorSelect.onchange = ()=>{
 
@@ -1149,10 +1317,8 @@ async function handleFiles(files){
             renderDashboard();
         };
 
-        rainSelect.onchange = ()=>{
-
-            renderDashboard();
-        };
+        rainSelect.onchange =
+            renderDashboard;
 
         document.getElementById('leftMonitorBtn').onclick = ()=>{
 
@@ -1184,6 +1350,10 @@ async function handleFiles(files){
         document.getElementById('nextBtn').onclick =
             document.getElementById('rightMonitorBtn').onclick;
 
+        // =================================================
+        // INITIAL RENDER
+        // =================================================
+
         renderDashboard();
     }
 
@@ -1198,11 +1368,19 @@ async function handleFiles(files){
 }
 
 // =====================================================
-// DRAG DROP EVENTS
+// DRAG DROP
 // =====================================================
 
 const dropZone =
     document.getElementById('dropZone');
+
+window.addEventListener('dragover', e=>{
+    e.preventDefault();
+});
+
+window.addEventListener('drop', e=>{
+    e.preventDefault();
+});
 
 dropZone.addEventListener('dragover', e=>{
 
@@ -1222,7 +1400,9 @@ dropZone.addEventListener('drop', e=>{
 
     dropZone.classList.remove('dragover');
 
-    handleFiles(e.dataTransfer.files);
+    handleFiles(
+        e.dataTransfer.files
+    );
 });
 
 </script>
