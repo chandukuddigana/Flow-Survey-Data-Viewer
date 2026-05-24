@@ -119,6 +119,7 @@ body{
 
 canvas{
     width:100% !important;
+    background:#ffffff !important;
 }
 
 .controls-box{
@@ -405,27 +406,27 @@ const chartAreaBackgroundPlugin = {
 
     id:'chartAreaBackground',
 
-    beforeDraw(chart,args,options){
+    beforeDraw(chart,args,pluginOptions){
 
         const {
             ctx,
-            chartArea
+            width,
+            height
         } = chart;
-
-        if(!chartArea){
-            return;
-        }
 
         ctx.save();
 
+        ctx.globalCompositeOperation =
+            'destination-over';
+
         ctx.fillStyle =
-            options.color || '#ffffff';
+            pluginOptions.color || '#ffffff';
 
         ctx.fillRect(
-            chartArea.left,
-            chartArea.top,
-            chartArea.right - chartArea.left,
-            chartArea.bottom - chartArea.top
+            0,
+            0,
+            width,
+            height
         );
 
         ctx.restore();
@@ -861,360 +862,6 @@ function initializeCharts(){
             }
         );
 }
-
-function renderDashboard(){
-
-    const monitor =
-        monitors[currentMonitorIndex];
-
-    const rainId =
-        document.getElementById('rainSelect').value;
-
-    const labels =
-        monitor.timestamps;
-
-    document.getElementById('monitorTitle').innerText =
-        monitor.identifier;
-
-    document.getElementById('scatterTitle').innerText =
-        `SCATTER GRAPH - ${monitor.identifier}`;
-
-    document.getElementById('pipeSize').value =
-        monitor.pipeSize + ' mm';
-
-    const rg =
-        rainGauges.find(r=>
-            r.identifier===rainId
-        );
-
-    const rainMap = new Map();
-
-    rg.timestamps.forEach((t,i)=>{
-
-        rainMap.set(
-            t.getTime(),
-            rg.intensity[i]
-        );
-    });
-
-    const alignedRain =
-        labels.map(t=>
-            rainMap.get(t.getTime()) || 0
-        );
-
-    rainChart.data.labels = labels;
-    rainChart.data.datasets[0].data = alignedRain;
-    rainChart.options.scales.x = commonXAxis(labels);
-    rainChart.update('none');
-
-    depthChart.data.labels = labels;
-    depthChart.data.datasets[0].data = monitor.depth;
-    depthChart.options.scales.x = commonXAxis(labels);
-    depthChart.update('none');
-
-    flowChart.data.labels = labels;
-    flowChart.data.datasets[0].data = monitor.flow;
-    flowChart.options.scales.x = commonXAxis(labels);
-    flowChart.update('none');
-
-    velocityChart.data.labels = labels;
-    velocityChart.data.datasets[0].data = monitor.velocity;
-    velocityChart.options.scales.x = commonXAxis(labels);
-    velocityChart.update('none');
-
-    const palette = [
-        '#1f77b4',
-        '#2ca02c',
-        '#ff7f0e',
-        '#9467bd',
-        '#17becf'
-    ];
-
-    cumulativeChart.data.labels = labels;
-
-    cumulativeChart.data.datasets =
-        rainGauges.map((rg,i)=>{
-
-            let total=0;
-
-            const cumulative=[];
-
-            const map = new Map();
-
-            rg.timestamps.forEach((t,index)=>{
-
-                map.set(
-                    t.getTime(),
-                    rg.intensity[index]
-                );
-            });
-
-            labels.forEach(t=>{
-
-                const val =
-                    map.get(t.getTime()) || 0;
-
-                total +=
-                    val * (monitor.interval/60);
-
-                cumulative.push(total);
-            });
-
-            const selected =
-                rg.identifier===rainId;
-
-            return {
-
-                label:rg.identifier,
-
-                data:cumulative,
-
-                borderColor:
-                    palette[i % palette.length],
-
-                backgroundColor:
-                    palette[i % palette.length],
-
-                borderWidth:
-                    selected ? 2.5 : 1.1,
-
-                pointRadius:0,
-
-                tension:0
-            };
-        });
-
-    cumulativeChart.options.scales.x =
-        cumulativeXAxis(labels);
-
-    cumulativeChart.update('none');
-
-    if(monitor.type==='DM'){
-
-        document
-            .getElementById('scatterContainer')
-            .classList.add('greyed');
-
-        scatterChart.data.datasets[0].data=[];
-
-    }else{
-
-        document
-            .getElementById('scatterContainer')
-            .classList.remove('greyed');
-
-        scatterChart.data.datasets[0].data =
-            monitor.depth.map((d,i)=>({
-                x:monitor.velocity[i],
-                y:d/1000
-            }));
-    }
-
-    scatterChart.update('none');
-
-    const totalRain =
-        alignedRain.reduce(
-            (a,b)=>a+b*(monitor.interval/60),
-            0
-        );
-
-    const totalVolume =
-        monitor.flow.reduce(
-            (a,b)=>a+b*(monitor.interval*60),
-            0
-        ) / 1000;
-
-    const velocityFiltered =
-        monitor.velocity.filter(v=>v>0);
-
-    document.getElementById('timeRange').innerText =
-        `${formatDateTime(labels[0])} - ${formatDateTime(labels[labels.length-1])}`;
-
-    document.getElementById('totalRain').innerText =
-        totalRain.toFixed(3);
-
-    document.getElementById('totalVolume').innerText =
-        totalVolume.toFixed(3);
-
-    document.getElementById('rainDepth').innerText =
-        totalRain.toFixed(3);
-
-    document.getElementById('rainPeak').innerText =
-        Math.max(...alignedRain).toFixed(3);
-
-    document.getElementById('rainAverage').innerText =
-        (
-            alignedRain.reduce((a,b)=>a+b,0)
-            / alignedRain.length
-        ).toFixed(3);
-
-    document.getElementById('depthMin').innerText =
-        Math.min(...monitor.depth).toFixed(3);
-
-    document.getElementById('depthMax').innerText =
-        Math.max(...monitor.depth).toFixed(3);
-
-    document.getElementById('flowMin').innerText =
-        Math.min(...monitor.flow).toFixed(3);
-
-    document.getElementById('flowMax').innerText =
-        Math.max(...monitor.flow).toFixed(3);
-
-    document.getElementById('flowVolume').innerText =
-        totalVolume.toFixed(3);
-
-    document.getElementById('velocityMin').innerText =
-        (
-            velocityFiltered.length
-            ? Math.min(...velocityFiltered)
-            : 0
-        ).toFixed(3);
-
-    document.getElementById('velocityMax').innerText =
-        Math.max(...monitor.velocity).toFixed(3);
-}
-
-async function handleFiles(files){
-
-    monitors.length=0;
-    rainGauges.length=0;
-
-    const loadingText =
-        document.getElementById('loadingText');
-
-    let processed=0;
-
-    for(const file of files){
-
-        const text =
-            await file.text();
-
-        if(file.name.toLowerCase().endsWith('.fdv')){
-
-            monitors.push(
-                parseFDV(text)
-            );
-        }
-
-        if(file.name.toLowerCase().endsWith('.r')){
-
-            rainGauges.push(
-                parseRain(text)
-            );
-        }
-
-        processed++;
-
-        loadingText.innerHTML =
-            `Processing ${processed} / ${files.length}`;
-    }
-
-    initializeCharts();
-
-    const monitorSelect =
-        document.getElementById('monitorSelect');
-
-    const rainSelect =
-        document.getElementById('rainSelect');
-
-    monitorSelect.innerHTML='';
-    rainSelect.innerHTML='';
-
-    monitors.forEach((m,i)=>{
-
-        const op =
-            document.createElement('option');
-
-        op.value=i;
-        op.textContent=m.identifier;
-
-        monitorSelect.appendChild(op);
-    });
-
-    rainGauges.forEach(r=>{
-
-        const op =
-            document.createElement('option');
-
-        op.value=r.identifier;
-        op.textContent=r.identifier;
-
-        rainSelect.appendChild(op);
-    });
-
-    monitorSelect.onchange=()=>{
-
-        currentMonitorIndex =
-            parseInt(monitorSelect.value);
-
-        renderDashboard();
-    };
-
-    rainSelect.onchange =
-        renderDashboard;
-
-    document.getElementById('prevBtn').onclick=()=>{
-
-        currentMonitorIndex =
-            (currentMonitorIndex-1+monitors.length)
-            % monitors.length;
-
-        monitorSelect.value =
-            currentMonitorIndex;
-
-        renderDashboard();
-    };
-
-    document.getElementById('nextBtn').onclick=()=>{
-
-        currentMonitorIndex =
-            (currentMonitorIndex+1)
-            % monitors.length;
-
-        monitorSelect.value =
-            currentMonitorIndex;
-
-        renderDashboard();
-    };
-
-    document.getElementById('leftMonitorBtn').onclick =
-        document.getElementById('prevBtn').onclick;
-
-    document.getElementById('rightMonitorBtn').onclick =
-        document.getElementById('nextBtn').onclick;
-
-    document.getElementById('dropZone').style.display='none';
-
-    document.getElementById('app').style.display='block';
-
-    renderDashboard();
-}
-
-const dropZone =
-    document.getElementById('dropZone');
-
-dropZone.addEventListener('dragover',e=>{
-
-    e.preventDefault();
-
-    dropZone.classList.add('dragover');
-});
-
-dropZone.addEventListener('dragleave',()=>{
-
-    dropZone.classList.remove('dragover');
-});
-
-dropZone.addEventListener('drop',e=>{
-
-    e.preventDefault();
-
-    dropZone.classList.remove('dragover');
-
-    handleFiles(
-        e.dataTransfer.files
-    );
-});
 
 </script>
 
