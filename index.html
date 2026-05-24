@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V17</title>
+<title>Flow Survey Dashboard V18</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -168,6 +168,7 @@ canvas{
     width:100%;
     border-collapse:collapse;
     background:white;
+    margin-top:10px;
 }
 
 .stats-table th{
@@ -196,7 +197,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V17
+    Flow Survey Dashboard V18
 </div>
 
 <div id="dropZone">
@@ -317,6 +318,93 @@ canvas{
 
     </div>
 
+    <div class="stats-box">
+
+        <table class="stats-table">
+
+            <thead>
+
+                <tr>
+                    <th>Time Range</th>
+                    <th>Total Rainfall Depth (mm)</th>
+                    <th>Total Flow Volume (m³)</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <tr>
+
+                    <td id="timeRange"></td>
+                    <td id="totalRain"></td>
+                    <td id="totalVolume"></td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+        <table class="stats-table">
+
+            <thead>
+
+                <tr>
+
+                    <th colspan="3">Rainfall</th>
+                    <th colspan="2">Depth</th>
+                    <th colspan="3">Flow</th>
+                    <th colspan="2">Velocity</th>
+
+                </tr>
+
+                <tr>
+
+                    <th>Depth (mm)</th>
+                    <th>Peak (mm/hr)</th>
+                    <th>Average (mm/hr)</th>
+
+                    <th>Min (mm)</th>
+                    <th>Max (mm)</th>
+
+                    <th>Min (l/s)</th>
+                    <th>Max (l/s)</th>
+                    <th>Volume (m³)</th>
+
+                    <th>Min (m/s)</th>
+                    <th>Max (m/s)</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <tr>
+
+                    <td id="rainDepth"></td>
+                    <td id="rainPeak"></td>
+                    <td id="rainAverage"></td>
+
+                    <td id="depthMin"></td>
+                    <td id="depthMax"></td>
+
+                    <td id="flowMin"></td>
+                    <td id="flowMax"></td>
+                    <td id="flowVolume"></td>
+
+                    <td id="velocityMin"></td>
+                    <td id="velocityMax"></td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
 </div>
 
 <script>
@@ -355,6 +443,14 @@ function formatDate(date){
             month:'short'
         }
     );
+}
+
+function formatDateTime(date){
+
+    const pad = n => String(n).padStart(2,'0');
+
+    return `${pad(date.getDate())}/${pad(date.getMonth()+1)}/${date.getFullYear()} `
+        + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 function generateTimeline(start, interval, count){
@@ -404,19 +500,16 @@ function cumulativeXAxis(labels){
                 const total =
                     labels.length;
 
-                // FIRST DATE
                 if(index === 0){
 
                     return formatDate(labels[index]);
                 }
 
-                // LAST DATE
                 if(index === total - 1){
 
                     return formatDate(labels[index]);
                 }
 
-                // INTERMEDIATE DATES
                 const interval =
                     Math.floor(total / 4);
 
@@ -680,7 +773,32 @@ function initializeCharts(){
                             }
                         }
                     }
-                }
+                },
+
+                plugins:[{
+                    id:'customCanvasBackgroundColor',
+                    beforeDraw:(chart)=>{
+
+                        const ctx =
+                            chart.canvas.getContext('2d');
+
+                        ctx.save();
+
+                        ctx.globalCompositeOperation =
+                            'destination-over';
+
+                        ctx.fillStyle = 'white';
+
+                        ctx.fillRect(
+                            0,
+                            0,
+                            chart.width,
+                            chart.height
+                        );
+
+                        ctx.restore();
+                    }
+                }]
             }
         );
 
@@ -881,6 +999,69 @@ function renderDashboard(){
     }
 
     scatterChart.update('none');
+
+    // STATS TABLES
+
+    const totalRain =
+        alignedRain.reduce(
+            (a,b)=>a+b*(monitor.interval/60),
+            0
+        );
+
+    const totalVolume =
+        monitor.flow.reduce(
+            (a,b)=>a+b*(monitor.interval*60),
+            0
+        ) / 1000;
+
+    const velocityFiltered =
+        monitor.velocity.filter(v => v > 0);
+
+    document.getElementById('timeRange').innerText =
+        `${formatDateTime(labels[0])} - ${formatDateTime(labels[labels.length-1])}`;
+
+    document.getElementById('totalRain').innerText =
+        totalRain.toFixed(3);
+
+    document.getElementById('totalVolume').innerText =
+        totalVolume.toFixed(3);
+
+    document.getElementById('rainDepth').innerText =
+        totalRain.toFixed(3);
+
+    document.getElementById('rainPeak').innerText =
+        Math.max(...alignedRain).toFixed(3);
+
+    document.getElementById('rainAverage').innerText =
+        (
+            alignedRain.reduce((a,b)=>a+b,0)
+            / alignedRain.length
+        ).toFixed(3);
+
+    document.getElementById('depthMin').innerText =
+        Math.min(...monitor.depth).toFixed(3);
+
+    document.getElementById('depthMax').innerText =
+        Math.max(...monitor.depth).toFixed(3);
+
+    document.getElementById('flowMin').innerText =
+        Math.min(...monitor.flow).toFixed(3);
+
+    document.getElementById('flowMax').innerText =
+        Math.max(...monitor.flow).toFixed(3);
+
+    document.getElementById('flowVolume').innerText =
+        totalVolume.toFixed(3);
+
+    document.getElementById('velocityMin').innerText =
+        (
+            velocityFiltered.length
+            ? Math.min(...velocityFiltered)
+            : 0
+        ).toFixed(3);
+
+    document.getElementById('velocityMax').innerText =
+        Math.max(...monitor.velocity).toFixed(3);
 }
 
 async function handleFiles(files){
