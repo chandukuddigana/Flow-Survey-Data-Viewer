@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V4</title>
+<title>Flow Survey Dashboard V5</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -101,10 +101,6 @@ body{
     color:#002d72;
 }
 
-.green-title{
-    color:#008f4c;
-}
-
 .red-title{
     color:#d62828;
 }
@@ -154,7 +150,7 @@ canvas{
 }
 
 .small-chart{
-    height:250px !important;
+    height:260px !important;
 }
 
 .stats-box{
@@ -172,6 +168,7 @@ canvas{
     color:#1b2f7a;
     padding:8px;
     font-size:12px;
+    background:#f2f4f8;
 }
 
 .stats-table td{
@@ -192,7 +189,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V4
+    Flow Survey Dashboard V5
 </div>
 
 <div id="dropZone">
@@ -229,7 +226,7 @@ canvas{
 
             <div class="chart-box">
 
-                <div class="chart-title green-title">
+                <div class="chart-title">
                     Depth (mm)
                 </div>
 
@@ -239,7 +236,7 @@ canvas{
 
             <div class="chart-box">
 
-                <div class="chart-title green-title">
+                <div class="chart-title">
                     Flow (l/s)
                 </div>
 
@@ -249,7 +246,7 @@ canvas{
 
             <div class="chart-box">
 
-                <div class="chart-title green-title">
+                <div class="chart-title">
                     Velocity (m/s)
                 </div>
 
@@ -315,7 +312,10 @@ canvas{
                     Velocity vs Depth Correlation
                 </div>
 
-                <canvas id="scatterChart" class="small-chart"></canvas>
+                <canvas
+                    id="scatterChart"
+                    style="height:340px !important;">
+                </canvas>
 
             </div>
 
@@ -326,6 +326,8 @@ canvas{
     <!-- STATS -->
 
     <div class="stats-box">
+
+        <!-- TABLE 1 -->
 
         <table class="stats-table">
 
@@ -355,16 +357,37 @@ canvas{
 
         <br>
 
+        <!-- TABLE 2 -->
+
         <table class="stats-table">
 
             <thead>
 
                 <tr>
-                    <th></th>
-                    <th>Rainfall (mm/hr)</th>
+
+                    <th colspan="3">Rainfall</th>
+                    <th colspan="2">Depth</th>
+                    <th colspan="3">Flow</th>
+                    <th colspan="2">Velocity</th>
+
+                </tr>
+
+                <tr>
+
                     <th>Depth (mm)</th>
-                    <th>Flow (l/s)</th>
-                    <th>Velocity (m/s)</th>
+                    <th>Peak (mm/hr)</th>
+                    <th>Average (mm/hr)</th>
+
+                    <th>Min (mm)</th>
+                    <th>Max (mm)</th>
+
+                    <th>Min (l/s)</th>
+                    <th>Max (l/s)</th>
+                    <th>Volume (m³)</th>
+
+                    <th>Min (m/s)</th>
+                    <th>Max (m/s)</th>
+
                 </tr>
 
             </thead>
@@ -372,27 +395,21 @@ canvas{
             <tbody>
 
                 <tr>
-                    <td><b>Min</b></td>
-                    <td id="minRain"></td>
-                    <td id="minDepth"></td>
-                    <td id="minFlow"></td>
-                    <td id="minVelocity"></td>
-                </tr>
 
-                <tr>
-                    <td><b>Avg</b></td>
-                    <td id="avgRain"></td>
-                    <td id="avgDepth"></td>
-                    <td id="avgFlow"></td>
-                    <td id="avgVelocity"></td>
-                </tr>
+                    <td id="rainDepth"></td>
+                    <td id="rainPeak"></td>
+                    <td id="rainAverage"></td>
 
-                <tr>
-                    <td><b>Max</b></td>
-                    <td id="maxRain"></td>
-                    <td id="maxDepth"></td>
-                    <td id="maxFlow"></td>
-                    <td id="maxVelocity"></td>
+                    <td id="depthMin"></td>
+                    <td id="depthMax"></td>
+
+                    <td id="flowMin"></td>
+                    <td id="flowMax"></td>
+                    <td id="flowVolume"></td>
+
+                    <td id="velocityMin"></td>
+                    <td id="velocityMax"></td>
+
                 </tr>
 
             </tbody>
@@ -406,7 +423,7 @@ canvas{
 <script>
 
 // =====================================================
-// GLOBAL STORAGE
+// GLOBALS
 // =====================================================
 
 const monitors = [];
@@ -495,8 +512,6 @@ function parseFDV(text){
     const interval =
         parseInt(parts[2]);
 
-    // PIPE SIZE
-
     let pipeSize = '';
 
     const cstartIndex =
@@ -518,8 +533,6 @@ function parseFDV(text){
                 parseFloat(nums[0]);
         }
     }
-
-    // DATA
 
     const cendIndex =
         lines.findIndex(l =>
@@ -572,7 +585,7 @@ function parseFDV(text){
 }
 
 // =====================================================
-// RAIN PARSER
+// RG PARSER
 // =====================================================
 
 function parseRain(text){
@@ -632,7 +645,7 @@ function parseRain(text){
 }
 
 // =====================================================
-// RAIN ALIGNMENT CACHE
+// PRECOMPUTE RAIN
 // =====================================================
 
 function precomputeRainAlignment(){
@@ -760,7 +773,7 @@ function createChart(canvasId, color, yTitle, reverse=false){
 }
 
 // =====================================================
-// INITIALIZE CHARTS ONCE
+// INITIALIZE CHARTS
 // =====================================================
 
 function initializeCharts(){
@@ -871,7 +884,7 @@ function initializeCharts(){
                         y:{
                             title:{
                                 display:true,
-                                text:'Depth (mm)'
+                                text:'Depth (m)'
                             }
                         }
                     }
@@ -917,7 +930,7 @@ function updateLineChart(chart, labels, data){
 }
 
 // =====================================================
-// DASHBOARD RENDER
+// RENDER DASHBOARD
 // =====================================================
 
 function renderDashboard(){
@@ -940,7 +953,7 @@ function renderDashboard(){
     document.getElementById('pipeSize').value =
         monitor.pipeSize + 'mm';
 
-    // RAIN
+    // CHARTS
 
     updateLineChart(
         rainChart,
@@ -948,23 +961,17 @@ function renderDashboard(){
         rainData.aligned
     );
 
-    // DEPTH
-
     updateLineChart(
         depthChart,
         labels,
         monitor.depth
     );
 
-    // FLOW
-
     updateLineChart(
         flowChart,
         labels,
         monitor.flow
     );
-
-    // VELOCITY
 
     updateLineChart(
         velocityChart,
@@ -976,25 +983,8 @@ function renderDashboard(){
     // CUMULATIVE
     // =====================================================
 
-    const maxPoints = 1500;
-
-    let dsLabels = labels;
-
-    if(labels.length > maxPoints){
-
-        const factor =
-            Math.ceil(labels.length / maxPoints);
-
-        dsLabels = [];
-
-        for(let i=0;i<labels.length;i+=factor){
-
-            dsLabels.push(labels[i]);
-        }
-    }
-
     cumulativeChart.data.labels =
-        dsLabels;
+        labels;
 
     const colors = [
         '#003399',
@@ -1008,32 +998,12 @@ function renderDashboard(){
             const rgData =
                 monitor.rainCache[rg.identifier];
 
-            let dsData =
-                rgData.cumulative;
-
-            if(rgData.cumulative.length > maxPoints){
-
-                const factor =
-                    Math.ceil(
-                        rgData.cumulative.length / maxPoints
-                    );
-
-                dsData = [];
-
-                for(let j=0;j<rgData.cumulative.length;j+=factor){
-
-                    dsData.push(
-                        rgData.cumulative[j]
-                    );
-                }
-            }
-
             return {
 
                 label:
                     `${rg.identifier} (${rgData.stats.totalRain.toFixed(1)} mm)`,
 
-                data:dsData,
+                data:rgData.cumulative,
 
                 borderColor:
                     colors[i % colors.length],
@@ -1045,7 +1015,7 @@ function renderDashboard(){
         });
 
     cumulativeChart.options.scales.x =
-        commonXAxis(dsLabels);
+        commonXAxis(labels);
 
     cumulativeChart.update('none');
 
@@ -1058,26 +1028,11 @@ function renderDashboard(){
 
             x:monitor.velocity[i],
 
-            y:d
+            y:d / 1000
         }));
 
-    let dsScatter = scatterData;
-
-    if(scatterData.length > 2000){
-
-        const factor =
-            Math.ceil(scatterData.length / 2000);
-
-        dsScatter = [];
-
-        for(let i=0;i<scatterData.length;i+=factor){
-
-            dsScatter.push(scatterData[i]);
-        }
-    }
-
     scatterChart.data.datasets[0].data =
-        dsScatter;
+        scatterData;
 
     scatterChart.update('none');
 
@@ -1099,6 +1054,14 @@ function renderDashboard(){
             0
         ) / 1000;
 
+    let validVelocity =
+        monitor.velocity.filter(v => v > 0);
+
+    if(validVelocity.length === 0){
+
+        validVelocity = [0];
+    }
+
     document.getElementById('timeRange').innerText =
         `${monitor.start.toLocaleString()} - ${monitor.end.toLocaleString()}`;
 
@@ -1108,50 +1071,37 @@ function renderDashboard(){
     document.getElementById('totalVolume').innerText =
         totalVolume.toFixed(3);
 
-    document.getElementById('minRain').innerText =
-        rainData.stats.minRain.toFixed(1);
+    // TABLE 2
 
-    document.getElementById('avgRain').innerText =
-        rainData.stats.avgRain.toFixed(2);
+    document.getElementById('rainDepth').innerText =
+        rainData.stats.totalRain.toFixed(3);
 
-    document.getElementById('maxRain').innerText =
-        rainData.stats.maxRain.toFixed(1);
+    document.getElementById('rainPeak').innerText =
+        rainData.stats.maxRain.toFixed(3);
 
-    document.getElementById('minDepth').innerText =
-        Math.min(...monitor.depth).toFixed(2);
+    document.getElementById('rainAverage').innerText =
+        rainData.stats.avgRain.toFixed(3);
 
-    document.getElementById('avgDepth').innerText =
-        avg(monitor.depth).toFixed(2);
+    document.getElementById('depthMin').innerText =
+        Math.min(...monitor.depth).toFixed(3);
 
-    document.getElementById('maxDepth').innerText =
-        Math.max(...monitor.depth).toFixed(2);
+    document.getElementById('depthMax').innerText =
+        Math.max(...monitor.depth).toFixed(3);
 
-    document.getElementById('minFlow').innerText =
-        Math.min(...monitor.flow).toFixed(2);
+    document.getElementById('flowMin').innerText =
+        Math.min(...monitor.flow).toFixed(3);
 
-    document.getElementById('avgFlow').innerText =
-        avg(monitor.flow).toFixed(2);
+    document.getElementById('flowMax').innerText =
+        Math.max(...monitor.flow).toFixed(3);
 
-    document.getElementById('maxFlow').innerText =
-        Math.max(...monitor.flow).toFixed(2);
+    document.getElementById('flowVolume').innerText =
+        totalVolume.toFixed(3);
 
-    let validVelocity =
-    monitor.velocity.filter(v => v > 0);
+    document.getElementById('velocityMin').innerText =
+        Math.min(...validVelocity).toFixed(3);
 
-if(validVelocity.length === 0){
-
-    validVelocity = [0];
-}
-
-document.getElementById('minVelocity').innerText =
-    Math.min(...validVelocity).toFixed(2);
-        Math.min(...monitor.velocity).toFixed(2);
-
-    document.getElementById('avgVelocity').innerText =
-        avg(monitor.velocity).toFixed(2);
-
-    document.getElementById('maxVelocity').innerText =
-        Math.max(...monitor.velocity).toFixed(2);
+    document.getElementById('velocityMax').innerText =
+        Math.max(...monitor.velocity).toFixed(3);
 }
 
 // =====================================================
@@ -1167,8 +1117,6 @@ async function handleFiles(files){
 
         monitors.length = 0;
         rainGauges.length = 0;
-
-        let processed = 0;
 
         for(const file of files){
 
@@ -1188,12 +1136,6 @@ async function handleFiles(files){
                     parseRain(text)
                 );
             }
-
-            processed++;
-
-            dropZone.innerHTML =
-                `<h2>Processing Files...</h2>
-                 <p>${processed}/${files.length} processed</p>`;
         }
 
         monitors.sort((a,b)=>
