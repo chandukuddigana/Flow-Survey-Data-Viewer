@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Flow Survey Dashboard V10</title>
+<title>Flow Survey Dashboard V12</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -195,7 +195,7 @@ canvas{
 <body>
 
 <div class="header">
-    Flow Survey Dashboard V10
+    Flow Survey Dashboard V12
 </div>
 
 <div id="dropZone">
@@ -316,8 +316,8 @@ canvas{
 
             <div class="chart-box" id="scatterContainer">
 
-                <div class="chart-title red-title">
-                    Velocity vs Depth Correlation
+                <div class="chart-title red-title" id="scatterTitle">
+                    SCATTER GRAPH
                 </div>
 
                 <canvas id="scatterChart" class="small-chart"></canvas>
@@ -759,8 +759,7 @@ function createChart(canvasId, color, yTitle, reverse=false){
                     }
                 }
             }
-        }
-    );
+        });
 }
 
 function initializeCharts(){
@@ -925,6 +924,9 @@ function renderDashboard(){
     document.getElementById('monitorTitle').innerText =
         monitor.identifier;
 
+    document.getElementById('scatterTitle').innerHTML =
+        `SCATTER GRAPH - ${monitor.identifier}`;
+
     document.getElementById('pipeSize').value =
         monitor.pipeSize + 'mm';
 
@@ -955,10 +957,16 @@ function renderDashboard(){
     cumulativeChart.data.labels =
         labels;
 
-    const colors = [
-        '#003399',
-        '#00acc1',
-        '#2962ff'
+    const palette = [
+
+        '#1f77b4',
+        '#2ca02c',
+        '#ff7f0e',
+        '#9467bd',
+        '#17becf',
+        '#8c564b',
+        '#e377c2',
+        '#7f7f7f'
     ];
 
     cumulativeChart.data.datasets =
@@ -975,17 +983,22 @@ function renderDashboard(){
                 label:
                     `${rg.identifier} (${rgData.stats.totalRain.toFixed(1)} mm)`,
 
-                data:rgData.cumulative,
+                data:[...rgData.cumulative],
 
                 borderColor:
-                    selected ? '#ff0000' : colors[i % colors.length],
+                    palette[i % palette.length],
 
                 backgroundColor:
-                    selected ? '#ff0000' : colors[i % colors.length],
+                    palette[i % palette.length],
 
-                borderWidth:2,
+                borderWidth:
+                    selected ? 4 : 1.2,
 
-                pointRadius:0
+                pointRadius:0,
+
+                tension:0,
+
+                fill:false
             };
         });
 
@@ -993,8 +1006,6 @@ function renderDashboard(){
         commonXAxis(labels);
 
     cumulativeChart.update('none');
-
-    // SCATTER GRAPH
 
     const scatterContainer =
         document.getElementById('scatterContainer');
